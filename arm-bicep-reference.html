@@ -54,15 +54,16 @@
             margin-bottom: 20px;
         }
 
-        .search-section input[type="search"] {
+        .search-section input[type="text"] {
             flex: 1;
             padding: 12px;
             border: 2px solid var(--border-color);
             border-radius: 6px;
             font-size: 1em;
+            background-image: none;
         }
 
-        .search-section input[type="search"]:focus {
+        .search-section input[type="text"]:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
             outline: none;
@@ -213,7 +214,7 @@
         }
 
         .code-block {
-            background: var(--code-bg);
+            background: #1e1e1e;
             border-radius: 6px;
             padding: 16px;
             margin: 12px 0;
@@ -223,12 +224,18 @@
 
         .code-block pre {
             margin: 0;
-            color: var(--code-text);
+            color: #f8f8f2;
+            background: transparent;
             font-family: 'Consolas', 'Monaco', monospace;
             font-size: 0.9em;
             line-height: 1.5;
             white-space: pre-wrap;
             word-break: break-all;
+        }
+
+        .code-block pre code {
+            color: #f8f8f2;
+            background: transparent;
         }
 
         .code-block .copy-btn {
@@ -384,7 +391,7 @@
         </div>
 
         <div class="search-section">
-            <input type="search" id="searchInput" placeholder="Search resources (e.g., storage, virtual machine, keyvault)..." disabled>
+            <input type="text" id="searchInput" placeholder="Search resources (e.g., storage, virtual machine, keyvault)..." disabled>
             <button id="fetchBtn" onclick="fetchData()">Load Data</button>
         </div>
 
