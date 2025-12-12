@@ -294,14 +294,21 @@
             color: white;
         }
 
-        .version-tag.latest {
+        .version-tag.selected {
             background: var(--primary);
             color: white;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary);
         }
 
         .version-tag.preview {
             background: #fef3c7;
             color: #92400e;
+        }
+
+        .version-tag.preview.selected {
+            background: #f59e0b;
+            color: white;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #f59e0b;
         }
 
         .action-buttons {
@@ -545,7 +552,7 @@
                 const isPreview = latestVersion.includes('preview');
 
                 html += `
-                    <div class="resource-card" data-fulltype="${escapeHtml(resource.fullType)}">
+                    <div class="resource-card" data-fulltype="${escapeHtml(resource.fullType)}" data-version="${escapeHtml(latestVersion)}">
                         <div class="resource-header" onclick="toggleCard(this)">
                             <span class="resource-type">${escapeHtml(resource.fullType)}</span>
                             <div class="resource-meta">
@@ -556,8 +563,8 @@
                         <div class="resource-body">
                             <div class="section-label">Bicep Declaration</div>
                             <div class="code-block">
-                                <button class="copy-btn" onclick="copyCode(this, 'bicep', '${escapeHtml(resource.fullType)}', '${escapeHtml(latestVersion)}')">Copy</button>
-                                <pre>resource myResource '${escapeHtml(resource.fullType)}@${escapeHtml(latestVersion)}' = {
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                <pre class="bicep-code">resource myResource '${escapeHtml(resource.fullType)}@${escapeHtml(latestVersion)}' = {
   name: 'my-resource-name'
   location: resourceGroup().location
   properties: {
@@ -566,21 +573,21 @@
 }</pre>
                             </div>
 
-                            <div class="section-label">All Versions (${resource.versions.length})</div>
+                            <div class="section-label">All Versions (${resource.versions.length}) <span style="font-weight: normal; text-transform: none;">— click to switch</span></div>
                             <div class="versions-list">
                                 ${resource.versions.map((v, i) => {
                                     const isLatest = i === 0;
                                     const isPrev = v.includes('preview');
                                     let classes = 'version-tag';
-                                    if (isLatest) classes += ' latest';
-                                    else if (isPrev) classes += ' preview';
-                                    return `<span class="${classes}" onclick="copyVersion('${escapeHtml(resource.fullType)}', '${escapeHtml(v)}')" title="Click to copy">${escapeHtml(v)}</span>`;
+                                    if (isLatest) classes += ' selected';
+                                    if (isPrev) classes += ' preview';
+                                    return `<span class="${classes}" data-version="${escapeHtml(v)}" onclick="selectVersion(this, '${escapeHtml(resource.fullType)}', '${escapeHtml(v)}')" title="Click to use this version">${escapeHtml(v)}</span>`;
                                 }).join('')}
                             </div>
 
                             <div class="action-buttons">
                                 <a class="btn-docs" href="${getDocsUrl(resource.fullType)}" target="_blank">📄 Microsoft Docs</a>
-                                <button class="btn-copy-type" onclick="copyToClipboard('${escapeHtml(resource.fullType)}@${escapeHtml(latestVersion)}', this)">📋 Copy Type String</button>
+                                <button class="btn-copy-type" onclick="copyTypeString(this)">📋 Copy Type String</button>
                             </div>
                         </div>
                     </div>
@@ -599,25 +606,53 @@
             card.classList.toggle('expanded');
         }
 
-        function copyCode(btn, type, fullType, version) {
-            let code;
-            if (type === 'bicep') {
-                code = `resource myResource '${fullType}@${version}' = {
+        function copyCode(btn) {
+            const card = btn.closest('.resource-card');
+            const fullType = card.dataset.fulltype;
+            const version = card.dataset.version;
+            const code = `resource myResource '${fullType}@${version}' = {
   name: 'my-resource-name'
   location: resourceGroup().location
   properties: {
     // ...
   }
 }`;
-            }
             copyToClipboard(code, btn);
         }
 
-        function copyVersion(fullType, version) {
-            const str = `${fullType}@${version}`;
-            navigator.clipboard.writeText(str).then(() => {
-                showToast(`Copied: ${str}`);
-            });
+        function copyTypeString(btn) {
+            const card = btn.closest('.resource-card');
+            const fullType = card.dataset.fulltype;
+            const version = card.dataset.version;
+            copyToClipboard(`${fullType}@${version}`, btn);
+        }
+
+        function selectVersion(tag, fullType, version) {
+            const card = tag.closest('.resource-card');
+
+            // Update card data attribute
+            card.dataset.version = version;
+
+            // Update version badge in header
+            const badge = card.querySelector('.version-badge');
+            badge.textContent = version;
+            badge.classList.toggle('preview', version.includes('preview'));
+
+            // Update Bicep code block
+            const codeBlock = card.querySelector('.bicep-code');
+            codeBlock.textContent = `resource myResource '${fullType}@${version}' = {
+  name: 'my-resource-name'
+  location: resourceGroup().location
+  properties: {
+    // ...
+  }
+}`;
+
+            // Update selected state on version tags
+            card.querySelectorAll('.version-tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+
+            showToast(`Switched to ${version}`);
         }
 
         function copyToClipboard(text, btn) {
