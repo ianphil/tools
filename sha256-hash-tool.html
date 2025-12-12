@@ -65,8 +65,8 @@
         <p>Generate SHA-256 hashes from text or files (up to 50MB)</p>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="switchTab('text')">Text</button>
-            <button class="tab-button" onclick="switchTab('file')">File</button>
+            <button class="tab-button active" onclick="switchTab('text', event)">Text</button>
+            <button class="tab-button" onclick="switchTab('file', event)">File</button>
         </div>
 
         <div id="text-tab" class="tab-content active">
@@ -89,19 +89,19 @@
         <div id="output" style="display: none;">
             <h3>SHA-256 Hash:</h3>
             <div class="hash-output" id="hash-result"></div>
-            <button class="copy-button" onclick="copyHash()">Copy to Clipboard</button>
+            <button class="copy-button" onclick="copyHash(event)">Copy to Clipboard</button>
         </div>
     </main>
 
     <script>
         const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-        function switchTab(tab) {
+        function switchTab(tab, e) {
             // Update tab buttons
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            e.target.classList.add('active');
 
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => {
@@ -182,11 +182,11 @@
             document.getElementById('output').style.display = 'block';
         }
 
-        async function copyHash() {
+        async function copyHash(e) {
             const hash = document.getElementById('hash-result').textContent;
             await navigator.clipboard.writeText(hash);
-            
-            const button = event.target;
+
+            const button = e.target;
             const originalText = button.textContent;
             button.textContent = 'Copied!';
             setTimeout(() => {
