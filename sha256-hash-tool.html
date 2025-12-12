@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SHA256 Hash Generator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem 1rem;
+        }
+        
+        main {
+            max-width: 600px;
+        }
+        
+        h1 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-group {
+            margin-bottom: 2rem;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        textarea {
+            min-height: 120px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        input[type="file"] {
+            margin-bottom: 0.5rem;
+        }
+        
+        .file-info {
+            font-size: 0.85rem;
+            color: var(--form-element-disabled-background);
+            margin-top: 0.25rem;
+        }
+        
+        .output-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: var(--card-background-color);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        
+        .output-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--muted-color);
+        }
+        
+        .hash-output {
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            padding: 0.75rem;
+            background-color: var(--form-element-background-color);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--form-element-border-color);
+            min-height: 2.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .hash-output.empty {
+            color: var(--muted-color);
+        }
+        
+        .copy-btn {
+            margin-top: 0.75rem;
+        }
+        
+        .progress {
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .progress.active {
+            display: block;
+        }
+        
+        progress {
+            width: 100%;
+        }
+        
+        .status {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            color: var(--muted-color);
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>SHA256 Hash Generator</h1>
+        
+        <div class="input-group">
+            <label for="textInput">Text Input</label>
+            <textarea id="textInput" placeholder="Paste text to hash..."></textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="fileInput">Or Upload a File (<=50mb)</label>
+            <input type="file" id="fileInput">
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+        
+        <div class="output-section">
+            <div class="output-label">SHA256 Hash</div>
+            <div class="hash-output empty" id="hashOutput">Enter text or upload a file</div>
+            <button class="copy-btn" id="copyBtn" style="display: none;" onclick="copyHash()">Copy Hash</button>
+            
+            <div class="progress" id="progress">
+                <progress id="progressBar"></progress>
+                <div class="status" id="status"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+        const textInput = document.getElementById('textInput');
+        const fileInput = document.getElementById('fileInput');
+        const hashOutput = document.getElementById('hashOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const progressDiv = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const statusDiv = document.getElementById('status');
+        
+        let currentHash = '';
+
+        // Text input handler
+        textInput.addEventListener('input', async () => {
+            const text = textInput.value;
+            if (text.length > 0) {
+                await hashText(text);
+            } else {
+                clearOutput();
+            }
+        });
+
+        // File input handler
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                clearOutput();
+                fileInfo.textContent = '';
+                return;
+            }
+
+            // Check file size early
+            if (file.size > MAX_FILE_SIZE) {
+                const maxMB = MAX_FILE_SIZE / (1024 * 1024);
+                const fileMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.textContent = `File too large: ${fileMB}MB (max: ${maxMB}MB)`;
+                fileInput.value = '';
+                clearOutput();
+                return;
+            }
+
+            fileInfo.textContent = `${file.name} (${formatBytes(file.size)})`;
+            await hashFile(file);
+        });
+
+        async function hashText(text) {
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(text);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                displayHash(hashBuffer);
+            } catch (error) {
+                console.error('Hashing error:', error);
+            }
+        }
+
+        async function hashFile(file) {
+            try {
+                showProgress(true);
+                
+                // For files over 10MB, show progress
+                if (file.size > 10 * 1024 * 1024) {
+                    await hashFileStreamed(file);
+                } else {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                    displayHash(hashBuffer);
+                }
+            } catch (error) {
+                console.error('File hashing error:', error);
+                hashOutput.textContent = 'Error hashing file';
+                hashOutput.classList.remove('empty');
+            } finally {
+                showProgress(false);
+            }
+        }
+
+        async function hashFileStreamed(file) {
+            const chunkSize = 1024 * 1024; // 1MB chunks
+            const reader = file.stream().getReader();
+            const hasher = await crypto.subtle.digest('SHA-256', new Uint8Array(0));
+            
+            let bytesRead = 0;
+            let chunks = [];
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    chunks.push(value);
+                    bytesRead += value.length;
+
+                    // Update progress
+                    const progress = (bytesRead / file.size) * 100;
+                    progressBar.value = progress;
+                    statusDiv.textContent = `${formatBytes(bytesRead)} / ${formatBytes(file.size)}`;
+                }
+
+                // Combine all chunks and hash
+                const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                const combined = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of chunks) {
+                    combined.set(chunk, offset);
+                    offset += chunk.length;
+                }
+
+                const hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+                displayHash(hashBuffer);
+            } finally {
+                reader.releaseLock();
+            }
+        }
+
+        function displayHash(hashBuffer) {
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            currentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            hashOutput.textContent = currentHash;
+            hashOutput.classList.remove('empty');
+            copyBtn.style.display = 'block';
+        }
+
+        function clearOutput() {
+            currentHash = '';
+            hashOutput.textContent = 'Enter text or upload a file';
+            hashOutput.classList.add('empty');
+            copyBtn.style.display = 'none';
+        }
+
+        function showProgress(show) {
+            if (show) {
+                progressDiv.classList.add('active');
+                progressBar.value = 0;
+                statusDiv.textContent = '';
+            } else {
+                progressDiv.classList.remove('active');
+            }
+        }
+
+        function copyHash() {
+            if (currentHash) {
+                navigator.clipboard.writeText(currentHash).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

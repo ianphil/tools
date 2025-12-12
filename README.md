@@ -22,6 +22,7 @@ The [colophon](colophon) lists commit messages and transcripts for every tool.
 ## Encryption Tools
 
 - [Base64 Encoder/Decoder](base64-tool) - Tool for encoding or decoding base64
+- [Sha256 Hash Tool](sha256-hash-tool) - Tool for hashing text or files using sha256
 
 ---
 
