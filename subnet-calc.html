@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Subnet Calculator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #10b981;
+            --border-color: #e5e7eb;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%);
+        }
+
+        .calculator-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            color: var(--primary-dark);
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95em;
+            margin: 0;
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        select {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            outline: none;
+        }
+
+        .cidr-slider-group {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-color);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            width: 24px;
+            height: 24px;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            width: 24px;
+            height: 24px;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
+        }
+
+        .cidr-value-display {
+            min-width: 50px;
+            text-align: center;
+            padding: 8px 12px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-calculate {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-calculate:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-clear {
+            background: #f3f4f6;
+            color: var(--text-muted);
+        }
+
+        .btn-clear:hover {
+            background: #e5e7eb;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .result-card {
+            background: #f9fafb;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .result-card:hover {
+            border-color: var(--primary);
+            background: #f0f9ff;
+        }
+
+        .result-label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .result-value {
+            font-size: 1.3em;
+            color: var(--primary-dark);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .result-detail {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .host-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .host-table thead {
+            background: #f3f4f6;
+        }
+
+        .host-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.9em;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .host-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .host-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .error {
+            background: #fee2e2;
+            border: 2px solid #fca5a5;
+            border-radius: 6px;
+            padding: 15px;
+            color: #991b1b;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <div class="header">
+            <h1>🌐 Subnet Calculator</h1>
+            <p class="subtitle">Calculate subnet information from IP and CIDR notation</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="ipInput">IP Address</label>
+                <input type="text" id="ipInput" placeholder="e.g., 192.168.1.1" autocomplete="off">
+                <div class="result-detail" style="margin-top: 4px; color: #999;">IPv4 address</div>
+            </div>
+            <div class="input-group">
+                <label for="cidrSlider">CIDR Prefix</label>
+                <div class="cidr-slider-group">
+                    <input type="range" id="cidrSlider" min="0" max="32" value="24" oninput="updateCidrValue()">
+                    <div class="cidr-value-display" id="cidrValue">24</div>
+                </div>
+                <div class="result-detail" style="margin-top: 4px; color: #999;">Drag to adjust (0-32)</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-calculate" onclick="calculateSubnet()">Calculate</button>
+            <button class="btn-clear" onclick="clearForm()">Clear</button>
+        </div>
+
+        <div class="results-section" id="results">
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-label">Network Address</div>
+                    <div class="result-value" id="networkAddr"></div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Subnet Mask</div>
+                    <div class="result-value" id="subnetMask"></div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Broadcast Address</div>
+                    <div class="result-value" id="broadcastAddr"></div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Usable Hosts</div>
+                    <div class="result-value" id="usableHosts"></div>
+                    <div class="result-detail" id="hostRange"></div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Network Size</div>
+                    <div class="result-value" id="networkSize"></div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">CIDR Notation</div>
+                    <div class="result-value" id="cidrNotation"></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <h3 class="section-title">Host Range Sample</h3>
+                <table class="host-table">
+                    <thead>
+                        <tr>
+                            <th>Host #</th>
+                            <th>IP Address</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hostTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-box" id="infoBox"></div>
+        </div>
+    </div>
+
+    <script>
+        function ipStringToInt(ip) {
+            const parts = ip.split('.');
+            if (parts.length !== 4) return null;
+            
+            let result = 0;
+            for (let i = 0; i < 4; i++) {
+                const num = parseInt(parts[i], 10);
+                if (isNaN(num) || num < 0 || num > 255) return null;
+                result = (result << 8) | num;
+            }
+            return result >>> 0;
+        }
+
+        function intToIpString(num) {
+            return [
+                (num >>> 24) & 255,
+                (num >>> 16) & 255,
+                (num >>> 8) & 255,
+                num & 255
+            ].join('.');
+        }
+
+        function updateCidrValue() {
+            const sliderValue = document.getElementById('cidrSlider').value;
+            document.getElementById('cidrValue').textContent = sliderValue;
+        }
+
+        function calculateSubnet() {
+            const errorDiv = document.getElementById('error');
+            errorDiv.classList.remove('visible');
+            
+            const ip = document.getElementById('ipInput').value.trim();
+            const cidr = parseInt(document.getElementById('cidrSlider').value, 10);
+
+            if (!ip || isNaN(cidr) || cidr < 0 || cidr > 32) {
+                showError('Please enter a valid IP address and CIDR prefix (0-32)');
+                return;
+            }
+
+            const ipInt = ipStringToInt(ip);
+            if (ipInt === null) {
+                showError('Invalid IP address format');
+                return;
+            }
+
+            // Calculate subnet mask
+            const mask = (0xffffffff << (32 - cidr)) >>> 0;
+            const networkInt = ipInt & mask;
+            const broadcastInt = networkInt | (~mask >>> 0);
+            const firstHostInt = networkInt + 1;
+            const lastHostInt = broadcastInt - 1;
+            const hostCount = Math.max(0, broadcastInt - networkInt - 1);
+
+            // Generate results
+            const networkAddr = intToIpString(networkInt);
+            const subnetMask = intToIpString(mask);
+            const broadcastAddr = intToIpString(broadcastInt);
+            const firstHost = hostCount > 0 ? intToIpString(firstHostInt) : 'N/A';
+            const lastHost = hostCount > 0 ? intToIpString(lastHostInt) : 'N/A';
+            const cidrNotation = `${networkAddr}/${cidr}`;
+            const totalAddresses = broadcastInt - networkInt + 1;
+
+            // Update results display
+            document.getElementById('networkAddr').textContent = networkAddr;
+            document.getElementById('subnetMask').textContent = subnetMask;
+            document.getElementById('broadcastAddr').textContent = broadcastAddr;
+            document.getElementById('usableHosts').textContent = hostCount;
+            document.getElementById('hostRange').textContent = hostCount > 0 ? `${firstHost} - ${lastHost}` : 'Point-to-point';
+            document.getElementById('networkSize').textContent = totalAddresses;
+            document.getElementById('cidrNotation').textContent = cidrNotation;
+
+            // Build host table
+            const tableBody = document.getElementById('hostTableBody');
+            tableBody.innerHTML = '';
+            
+            if (hostCount === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999;">No usable hosts (point-to-point link)</td></tr>';
+            } else {
+                const samples = [
+                    { num: 'Network', ip: networkAddr },
+                    { num: '1st Host', ip: firstHost },
+                ];
+                
+                if (hostCount > 2) {
+                    samples.push({ num: '...', ip: '...' });
+                    samples.push({ num: 'Last Host', ip: lastHost });
+                }
+                
+                samples.push({ num: 'Broadcast', ip: broadcastAddr });
+
+                samples.forEach(sample => {
+                    const row = document.createElement('tr');
+                    const typeMap = {
+                        'Network': 'Network',
+                        'Broadcast': 'Broadcast',
+                        '1st Host': 'Host',
+                        'Last Host': 'Host',
+                        '...': ''
+                    };
+                    row.innerHTML = `
+                        <td>${sample.num}</td>
+                        <td>${sample.ip}</td>
+                        <td>${typeMap[sample.num] || ''}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // Info box
+            const infoBox = document.getElementById('infoBox');
+            const classC = cidr === 24 ? ' (Class C equivalent)' : '';
+            const classB = cidr === 16 ? ' (Class B equivalent)' : '';
+            const classA = cidr === 8 ? ' (Class A equivalent)' : '';
+            const classInfo = classC || classB || classA || '';
+            infoBox.innerHTML = `<strong>ℹ️ Info:</strong> This subnet contains ${totalAddresses} total addresses with ${hostCount} usable hosts${classInfo}`;
+
+            // Show results
+            document.getElementById('results').classList.add('visible');
+        }
+
+        function clearForm() {
+            document.getElementById('ipInput').value = '';
+            document.getElementById('cidrSlider').value = '24';
+            document.getElementById('cidrValue').textContent = '24';
+            document.getElementById('results').classList.remove('visible');
+            document.getElementById('error').classList.remove('visible');
+            document.getElementById('ipInput').focus();
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('visible');
+            document.getElementById('results').classList.remove('visible');
+        }
+
+        // Enter key support
+        document.getElementById('ipInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') calculateSubnet();
+        });
+        document.getElementById('cidrSlider').addEventListener('change', () => {
+            calculateSubnet();
+        });
+    </script>
+</body>
+</html>
