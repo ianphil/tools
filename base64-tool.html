@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Encoder/Decoder</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        body {
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .button-group button {
+            flex: 1;
+        }
+        textarea {
+            min-height: 150px;
+            font-family: monospace;
+        }
+        .info {
+            background-color: var(--form-element-disabled-background-color);
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--muted-color);
+        }
+        .copy-btn {
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Base64 Encoder/Decoder</h1>
+        
+        <div>
+            <label for="input">Input</label>
+            <textarea id="input" placeholder="Enter text to encode or base64 to decode..."></textarea>
+        </div>
+
+        <div class="button-group">
+            <button onclick="encode()">Encode</button>
+            <button onclick="decode()">Decode</button>
+            <button onclick="clear()">Clear</button>
+        </div>
+
+        <div>
+            <label for="output">Output</label>
+            <textarea id="output" placeholder="Output will appear here..." readonly></textarea>
+        </div>
+
+        <button class="copy-btn outline" onclick="copyToClipboard()">Copy Output</button>
+
+        <div class="info">
+            <strong>How it works:</strong> Paste text and click "Encode" to convert to base64, or paste base64 and click "Decode" to convert back to text.
+        </div>
+    </main>
+
+    <script>
+        const inputEl = document.getElementById('input');
+        const outputEl = document.getElementById('output');
+
+        function encode() {
+            try {
+                const text = inputEl.value;
+                const encoded = btoa(unescape(encodeURIComponent(text)));
+                outputEl.value = encoded;
+            } catch (e) {
+                outputEl.value = 'Error encoding: ' + e.message;
+            }
+        }
+
+        function decode() {
+            try {
+                const text = inputEl.value;
+                const decoded = decodeURIComponent(escape(atob(text)));
+                outputEl.value = decoded;
+            } catch (e) {
+                outputEl.value = 'Error decoding: Invalid base64';
+            }
+        }
+
+        function clear() {
+            inputEl.value = '';
+            outputEl.value = '';
+            inputEl.focus();
+        }
+
+        function copyToClipboard() {
+            if (!outputEl.value) return;
+            navigator.clipboard.writeText(outputEl.value).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 1500);
+            });
+        }
+
+        inputEl.focus();
+    </script>
+</body>
+</html>
