@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ARM/Bicep Resource Reference</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #106ebe;
+            --secondary: #10b981;
+            --border-color: #e5e7eb;
+            --text-muted: #6b7280;
+            --code-bg: #1e1e1e;
+            --code-text: #d4d4d4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%);
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            color: var(--primary-dark);
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95em;
+            margin: 0;
+        }
+
+        .search-section {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .search-section input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            background-image: none;
+        }
+
+        .search-section input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+            outline: none;
+        }
+
+        .search-section button {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .search-section button:hover {
+            background: var(--primary-dark);
+        }
+
+        .search-section button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: var(--primary-dark);
+        }
+
+        .stats-bar span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-box {
+            background: #fee2e2;
+            border: 2px solid #fca5a5;
+            border-radius: 6px;
+            padding: 15px;
+            color: #991b1b;
+            margin-bottom: 20px;
+        }
+
+        .results {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .resource-card {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .resource-card:hover {
+            border-color: var(--primary);
+        }
+
+        .resource-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #f9fafb;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .resource-header:hover {
+            background: #f0f9ff;
+        }
+
+        .resource-type {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--primary-dark);
+            word-break: break-all;
+        }
+
+        .resource-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .version-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .expand-icon {
+            color: var(--text-muted);
+            font-size: 1.2em;
+            transition: transform 0.2s;
+        }
+
+        .resource-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .resource-body {
+            display: none;
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .resource-card.expanded .resource-body {
+            display: block;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            border-radius: 6px;
+            padding: 16px;
+            padding-right: 70px;
+            margin: 12px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            color: #f8f8f2;
+            background: transparent;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .code-block pre code {
+            color: #f8f8f2;
+            background: transparent;
+        }
+
+        .code-block .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #374151;
+            color: #d1d5db;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .code-block .copy-btn:hover {
+            background: #4b5563;
+            color: white;
+        }
+
+        .code-block .copy-btn.copied {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .section-label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .versions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .version-tag {
+            background: #e5e7eb;
+            color: #374151;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-family: 'Consolas', 'Monaco', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .version-tag:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .version-tag.selected {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary);
+        }
+
+        .version-tag.preview {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .version-tag.preview.selected {
+            background: #f59e0b;
+            color: white;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #f59e0b;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .action-buttons a,
+        .action-buttons button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-docs {
+            background: #dbeafe;
+            color: var(--primary-dark);
+            border: none;
+        }
+
+        .btn-docs:hover {
+            background: #bfdbfe;
+        }
+
+        .btn-copy-type {
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+        }
+
+        .btn-copy-type:hover {
+            background: #e5e7eb;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .initial-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .initial-state h3 {
+            color: #374151;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .search-section {
+                flex-direction: column;
+            }
+
+            .resource-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .resource-meta {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ARM/Bicep Resource Reference</h1>
+            <p class="subtitle">Quick lookup for Azure resource types and API versions</p>
+        </div>
+
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="Search resources (e.g., storage, virtual machine, keyvault)..." disabled>
+            <button id="fetchBtn" onclick="fetchData()">Load Data</button>
+        </div>
+
+        <div id="statsBar" class="stats-bar" style="display: none;">
+            <span><strong id="totalTypes">0</strong> resource types</span>
+            <span><strong id="totalProviders">0</strong> providers</span>
+            <span id="filterStats" style="display: none;"><strong id="filteredCount">0</strong> matching</span>
+        </div>
+
+        <div id="errorBox" class="error-box" style="display: none;"></div>
+
+        <div id="initialState" class="initial-state">
+            <h3>Welcome</h3>
+            <p>Click "Load Data" to fetch the latest Azure resource types from GitHub.</p>
+            <p style="font-size: 0.85em; margin-top: 20px;">
+                Data source: <a href="https://github.com/Azure/bicep-types-az" target="_blank">Azure/bicep-types-az</a>
+            </p>
+        </div>
+
+        <div id="loadingState" class="loading" style="display: none;">
+            <span class="spinner"></span>
+            Fetching resource types from GitHub...
+        </div>
+
+        <div id="results" class="results"></div>
+
+        <div id="noResults" class="no-results" style="display: none;">
+            No resources found matching your search.
+        </div>
+    </div>
+
+    <script>
+        let resourceData = [];
+        let groupedResources = {};
+
+        const DATA_URL = 'https://raw.githubusercontent.com/Azure/bicep-types-az/main/generated/index.json';
+
+        async function fetchData() {
+            const fetchBtn = document.getElementById('fetchBtn');
+            const searchInput = document.getElementById('searchInput');
+            const loadingState = document.getElementById('loadingState');
+            const initialState = document.getElementById('initialState');
+            const errorBox = document.getElementById('errorBox');
+            const statsBar = document.getElementById('statsBar');
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Loading...';
+            loadingState.style.display = 'block';
+            initialState.style.display = 'none';
+            errorBox.style.display = 'none';
+
+            try {
+                const response = await fetch(DATA_URL);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                processData(data.resources);
+
+                searchInput.disabled = false;
+                searchInput.focus();
+                statsBar.style.display = 'flex';
+                fetchBtn.textContent = 'Refresh';
+
+                renderResults('');
+            } catch (err) {
+                errorBox.textContent = `Failed to fetch data: ${err.message}. Please try again.`;
+                errorBox.style.display = 'block';
+                initialState.style.display = 'block';
+                fetchBtn.textContent = 'Retry';
+            } finally {
+                fetchBtn.disabled = false;
+                loadingState.style.display = 'none';
+            }
+        }
+
+        function processData(resources) {
+            resourceData = [];
+            groupedResources = {};
+
+            for (const key of Object.keys(resources)) {
+                const [fullType, apiVersion] = key.split('@');
+                if (!fullType || !apiVersion) continue;
+
+                const lastSlash = fullType.indexOf('/');
+                const provider = fullType.substring(0, lastSlash);
+                const type = fullType.substring(lastSlash + 1);
+
+                resourceData.push({ fullType, provider, type, apiVersion });
+
+                if (!groupedResources[fullType]) {
+                    groupedResources[fullType] = {
+                        fullType,
+                        provider,
+                        type,
+                        versions: []
+                    };
+                }
+                groupedResources[fullType].versions.push(apiVersion);
+            }
+
+            // Sort versions descending for each resource
+            for (const key in groupedResources) {
+                groupedResources[key].versions.sort((a, b) => b.localeCompare(a));
+            }
+
+            const providers = new Set(Object.values(groupedResources).map(r => r.provider));
+            document.getElementById('totalTypes').textContent = Object.keys(groupedResources).length.toLocaleString();
+            document.getElementById('totalProviders').textContent = providers.size.toLocaleString();
+        }
+
+        function renderResults(query) {
+            const resultsContainer = document.getElementById('results');
+            const noResults = document.getElementById('noResults');
+            const filterStats = document.getElementById('filterStats');
+            const filteredCount = document.getElementById('filteredCount');
+
+            const q = query.toLowerCase().trim();
+
+            let filtered = Object.values(groupedResources);
+
+            if (q) {
+                filtered = filtered.filter(r =>
+                    r.fullType.toLowerCase().includes(q) ||
+                    r.provider.toLowerCase().includes(q) ||
+                    r.type.toLowerCase().includes(q)
+                );
+                filterStats.style.display = 'inline';
+                filteredCount.textContent = filtered.length.toLocaleString();
+            } else {
+                filterStats.style.display = 'none';
+            }
+
+            // Sort alphabetically
+            filtered.sort((a, b) => a.fullType.localeCompare(b.fullType));
+
+            // Limit display for performance
+            const displayLimit = 100;
+            const limitedResults = filtered.slice(0, displayLimit);
+
+            if (filtered.length === 0 && q) {
+                resultsContainer.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+
+            noResults.style.display = 'none';
+
+            let html = '';
+            for (const resource of limitedResults) {
+                const latestVersion = resource.versions[0];
+                const isPreview = latestVersion.includes('preview');
+
+                html += `
+                    <div class="resource-card" data-fulltype="${escapeHtml(resource.fullType)}" data-version="${escapeHtml(latestVersion)}">
+                        <div class="resource-header" onclick="toggleCard(this)">
+                            <span class="resource-type">${escapeHtml(resource.fullType)}</span>
+                            <div class="resource-meta">
+                                <span class="version-badge${isPreview ? ' preview' : ''}">${escapeHtml(latestVersion)}</span>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="resource-body">
+                            <div class="section-label">Bicep Declaration</div>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                <pre class="bicep-code">resource myResource '${escapeHtml(resource.fullType)}@${escapeHtml(latestVersion)}' = {
+  name: 'my-resource-name'
+  location: resourceGroup().location
+  properties: {
+    // ...
+  }
+}</pre>
+                            </div>
+
+                            <div class="section-label">All Versions (${resource.versions.length}) <span style="font-weight: normal; text-transform: none;">— click to switch</span></div>
+                            <div class="versions-list">
+                                ${resource.versions.map((v, i) => {
+                                    const isLatest = i === 0;
+                                    const isPrev = v.includes('preview');
+                                    let classes = 'version-tag';
+                                    if (isLatest) classes += ' selected';
+                                    if (isPrev) classes += ' preview';
+                                    return `<span class="${classes}" data-version="${escapeHtml(v)}" onclick="selectVersion(this, '${escapeHtml(resource.fullType)}', '${escapeHtml(v)}')" title="Click to use this version">${escapeHtml(v)}</span>`;
+                                }).join('')}
+                            </div>
+
+                            <div class="action-buttons">
+                                <a class="btn-docs" href="${getDocsUrl(resource.fullType)}" target="_blank">📄 Microsoft Docs</a>
+                                <button class="btn-copy-type" onclick="copyTypeString(this)">📋 Copy Type String</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (filtered.length > displayLimit) {
+                html += `<div class="no-results">Showing first ${displayLimit} of ${filtered.length.toLocaleString()} results. Refine your search to see more.</div>`;
+            }
+
+            resultsContainer.innerHTML = html;
+        }
+
+        function toggleCard(header) {
+            const card = header.closest('.resource-card');
+            card.classList.toggle('expanded');
+        }
+
+        function copyCode(btn) {
+            const card = btn.closest('.resource-card');
+            const fullType = card.dataset.fulltype;
+            const version = card.dataset.version;
+            const code = `resource myResource '${fullType}@${version}' = {
+  name: 'my-resource-name'
+  location: resourceGroup().location
+  properties: {
+    // ...
+  }
+}`;
+            copyToClipboard(code, btn);
+        }
+
+        function copyTypeString(btn) {
+            const card = btn.closest('.resource-card');
+            const fullType = card.dataset.fulltype;
+            const version = card.dataset.version;
+            copyToClipboard(`${fullType}@${version}`, btn);
+        }
+
+        function selectVersion(tag, fullType, version) {
+            const card = tag.closest('.resource-card');
+
+            // Update card data attribute
+            card.dataset.version = version;
+
+            // Update version badge in header
+            const badge = card.querySelector('.version-badge');
+            badge.textContent = version;
+            badge.classList.toggle('preview', version.includes('preview'));
+
+            // Update Bicep code block
+            const codeBlock = card.querySelector('.bicep-code');
+            codeBlock.textContent = `resource myResource '${fullType}@${version}' = {
+  name: 'my-resource-name'
+  location: resourceGroup().location
+  properties: {
+    // ...
+  }
+}`;
+
+            // Update selected state on version tags
+            card.querySelectorAll('.version-tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+
+            showToast(`Switched to ${version}`);
+        }
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('copied');
+                    }, 1500);
+                }
+            });
+        }
+
+        function showToast(message) {
+            // Simple toast - could be enhanced
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #1f2937;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 6px;
+                font-size: 0.9em;
+                z-index: 1000;
+                animation: fadeInOut 2s forwards;
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function getDocsUrl(fullType) {
+            // Convert Microsoft.Storage/storageAccounts to docs URL
+            const parts = fullType.toLowerCase().split('/');
+            const provider = parts[0].replace('microsoft.', '');
+            const resourcePath = parts.slice(1).join('/');
+            return `https://learn.microsoft.com/en-us/azure/templates/${parts[0].toLowerCase()}/${resourcePath}?pivots=deployment-language-bicep`;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Search input handling
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                renderResults(e.target.value);
+            }, 200);
+        });
+
+        // Add toast animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+                15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    <script src="footer.js?"></script>
+</body>
+</html>
