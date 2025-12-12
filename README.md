@@ -19,6 +19,10 @@ The [colophon](colophon) lists commit messages and transcripts for every tool.
 
 - [ARM/Bicep Resource Reference](arm-bicep-reference) - Quick lookup for Azure resource types and API versions
 
+## Encryption Tools
+
+- [Base64 Encoder/Decoder](base64-tool) - Tool for encoding or decoding base64
+
 ---
 
 *Built with HTML, CSS, and JavaScript. No build step required.*
