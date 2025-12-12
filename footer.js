@@ -58,9 +58,9 @@
         `;
 
         const links = [
-            { href: 'index.html', text: 'Home' },
-            { href: 'colophon.html', text: 'About' },
-            { href: 'by-month.html', text: 'Archive' }
+            { href: './', text: 'Home' },
+            { href: 'colophon', text: 'About' },
+            { href: 'by-month', text: 'Archive' }
         ];
 
         let html = '<div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">';

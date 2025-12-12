@@ -92,8 +92,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
     <nav class="nav">
-        <a href="index.html">Home</a>
-        <a href="colophon.html">Colophon</a>
+        <a href="./">Home</a>
+        <a href="colophon">Colophon</a>
     </nav>
     <h1>Tools by Month</h1>
     {toc}
@@ -166,7 +166,7 @@ def build_by_month():
                 # Truncate long descriptions
                 short_desc = description[:150] + "..." if len(description) > 150 else description
                 html += f'<span class="tool-description">{short_desc}</span>\n'
-            html += f'<span class="tool-links"><a href="colophon.html#{slug}">history</a></span>\n'
+            html += f'<span class="tool-links"><a href="colophon#{slug}">history</a></span>\n'
             html += '</div>\n'
 
         html += '</div>\n'

@@ -7,8 +7,8 @@ A collection of single-file browser-based tools.
 
 ## Text Tools
 
-- [Word Counter](word-counter.html) - Count words, characters, and lines
-- [Subnet Calculator](subnet-calc.html) - Calculate subnet info using CIDR ranges
+- [Word Counter](word-counter) - Count words, characters, and lines
+- [Subnet Calculator](subnet-calc) - Calculate subnet info using CIDR ranges
 
 ---
 

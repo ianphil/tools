@@ -121,7 +121,7 @@ def gather_links():
             "slug": slug,
             "title": title,
             "description": description,
-            "url": html_path.name,
+            "url": slug,  # Clean URL without .html
             "created": commits[-1]["date"] if commits else "",
             "updated": commits[0]["date"] if commits else "",
         })

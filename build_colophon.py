@@ -103,8 +103,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
     <nav class="nav">
-        <a href="index.html">Home</a>
-        <a href="by-month.html">By Month</a>
+        <a href="./">Home</a>
+        <a href="by-month">By Month</a>
     </nav>
     <h1>Colophon</h1>
     <p>Development history of all tools, sorted by most recent activity.</p>
