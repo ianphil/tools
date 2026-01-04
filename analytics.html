@@ -383,8 +383,9 @@
             fill: true,
             tension: 0.4,
             borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
+            pointRadius: values.length < 3 ? 4 : 0,
+            pointBackgroundColor: '#3b82f6',
+            pointHoverRadius: 5,
             pointHoverBackgroundColor: '#3b82f6',
           }]
         },
