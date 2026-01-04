@@ -24,6 +24,10 @@ The [colophon](colophon) lists commit messages and transcripts for every tool.
 - [Base64 Encoder/Decoder](base64-tool) - Tool for encoding or decoding base64
 - [Sha256 Hash Tool](sha256-hash-tool) - Tool for hashing text or files using sha256
 
+## Analytics
+
+- [Blog Analytics](analytics) - Privacy-friendly analytics dashboard for blog.ianp.io
+
 ---
 
 *Built with HTML, CSS, and JavaScript. No build step required.*
