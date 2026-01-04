@@ -191,12 +191,19 @@
         const data = await loadStats();
         if (!data) return;
 
+        // Create dated filename for history
+        const today = new Date().toISOString().split('T')[0];
+        const datedFilename = `stats-${today}.json`;
+
         await auth.fetch(`https://api.github.com/gists/${GIST_ID}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             files: {
               'blog-stats.json': {
+                content: JSON.stringify(data, null, 2)
+              },
+              [datedFilename]: {
                 content: JSON.stringify(data, null, 2)
               }
             }
