@@ -4,72 +4,240 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blog Analytics</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --bg: #0f1117;
+      --bg-card: #1a1d27;
+      --bg-card-hover: #22262f;
+      --border: #2a2f3a;
+      --fg: #e4e4e7;
+      --fg-muted: #71717a;
+      --fg-dim: #52525b;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f1f5f9;
+        --border: #e2e8f0;
+        --fg: #0f172a;
+        --fg-muted: #64748b;
+        --fg-dim: #94a3b8;
+        --accent: #2563eb;
+        --accent-soft: rgba(37, 99, 235, 0.1);
+      }
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
     .auth-section {
       display: flex;
       gap: 0.5rem;
-      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
     }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+    button {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--fg);
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
-    .stat-card {
-      background: var(--card-background-color);
-      padding: 1rem;
-      border-radius: 0.5rem;
+    button:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--fg-dim);
     }
-    .stat-card h3 {
-      margin: 0 0 0.5rem 0;
-      font-size: 0.875rem;
-      color: var(--muted-color);
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
     }
-    .stat-card .value {
-      font-size: 2rem;
-      font-weight: bold;
+    button.primary:hover {
+      filter: brightness(1.1);
     }
-    table {
-      margin-bottom: 1.5rem;
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
+    .hidden { display: none !important; }
+
     .loading {
       text-align: center;
-      padding: 2rem;
-      color: var(--muted-color);
+      padding: 4rem 2rem;
+      color: var(--fg-muted);
     }
     .error {
-      color: var(--del-color);
+      color: var(--danger);
       padding: 1rem;
-      background: var(--card-background-color);
-      border-radius: 0.5rem;
-    }
-    .hidden { display: none; }
-    .chart-container {
-      background: var(--card-background-color);
-      padding: 1rem;
-      border-radius: 0.5rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 8px;
       margin-bottom: 1.5rem;
     }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .stat-card .label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--fg-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .stat-card .value {
+      font-family: 'DM Mono', monospace;
+      font-size: 2rem;
+      font-weight: 500;
+      color: var(--fg);
+      line-height: 1.2;
+    }
+    .stat-card .value.small {
+      font-size: 0.875rem;
+      color: var(--fg-muted);
+    }
+
+    .section {
+      margin-bottom: 2rem;
+    }
+    .section-header {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th {
+      text-align: left;
+      padding: 0.875rem 1rem;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--fg-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    th:last-child {
+      text-align: right;
+    }
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--fg);
+    }
+    td:last-child {
+      text-align: right;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8125rem;
+      color: var(--fg-muted);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+    td.page-path {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8125rem;
+      color: var(--accent);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <main class="container">
-    <h1>Blog Analytics</h1>
-
-    <div class="auth-section">
-      <button id="login-btn">Sign in with GitHub</button>
-      <button id="sync-btn" class="outline hidden">Sync to Gist</button>
-      <button id="cleanup-btn" class="secondary outline hidden">Export & Cleanup</button>
-      <button id="logout-btn" class="secondary outline hidden">Logout</button>
-    </div>
+  <div class="container">
+    <header>
+      <h1>Blog Analytics</h1>
+      <div class="auth-section">
+        <button id="login-btn" class="primary">Sign in with GitHub</button>
+        <button id="sync-btn" class="hidden">Sync to Gist</button>
+        <button id="cleanup-btn" class="hidden">Export & Cleanup</button>
+        <button id="logout-btn" class="hidden">Logout</button>
+      </div>
+    </header>
 
     <div id="loading" class="loading">Loading stats...</div>
     <div id="error" class="error hidden"></div>
@@ -77,53 +245,72 @@
     <div id="stats" class="hidden">
       <div class="stats-grid">
         <div class="stat-card">
-          <h3>Total Views (30 days)</h3>
+          <div class="label">Total Views (30d)</div>
           <div class="value" id="total-views">-</div>
         </div>
         <div class="stat-card">
-          <h3>Generated</h3>
-          <div class="value" id="generated" style="font-size: 1rem;">-</div>
+          <div class="label">Last Updated</div>
+          <div class="value small" id="generated">-</div>
         </div>
       </div>
 
-      <h2>Daily Views</h2>
-      <div class="chart-container">
-        <canvas id="daily-chart"></canvas>
+      <div class="section">
+        <div class="section-header">Daily Views</div>
+        <div class="chart-card">
+          <canvas id="daily-chart" height="120"></canvas>
+        </div>
       </div>
 
-      <h2>Top Pages</h2>
-      <table>
-        <thead>
-          <tr><th>Page</th><th>Views</th></tr>
-        </thead>
-        <tbody id="pages-table"></tbody>
-      </table>
+      <div class="section">
+        <div class="section-header">Top Pages</div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr><th>Page</th><th>Views</th></tr>
+            </thead>
+            <tbody id="pages-table"></tbody>
+          </table>
+        </div>
+      </div>
 
-      <h2>Referrers</h2>
-      <table>
-        <thead>
-          <tr><th>Source</th><th>Views</th></tr>
-        </thead>
-        <tbody id="referrers-table"></tbody>
-      </table>
+      <div class="section">
+        <div class="section-header">Traffic Sources</div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr><th>Referrer</th><th>Views</th></tr>
+            </thead>
+            <tbody id="referrers-table"></tbody>
+          </table>
+        </div>
+      </div>
 
-      <h2>Browsers</h2>
-      <table>
-        <thead>
-          <tr><th>Browser</th><th>Views</th></tr>
-        </thead>
-        <tbody id="browsers-table"></tbody>
-      </table>
-
-      <h2>Devices</h2>
-      <table>
-        <thead>
-          <tr><th>Device</th><th>Views</th></tr>
-        </thead>
-        <tbody id="devices-table"></tbody>
-      </table>
+      <div class="section grid-2">
+        <div>
+          <div class="section-header">Browsers</div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr><th>Browser</th><th>Views</th></tr>
+              </thead>
+              <tbody id="browsers-table"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="section-header">Devices</div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr><th>Device</th><th>Views</th></tr>
+              </thead>
+              <tbody id="devices-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
-  </main>
+  </div>
 
   <script type="module">
     import { auth } from './auth.js';
@@ -141,7 +328,6 @@
     const errorEl = document.getElementById('error');
     const statsEl = document.getElementById('stats');
 
-    // Auth state
     function updateAuthUI() {
       if (auth.isLoggedIn()) {
         loginBtn.classList.add('hidden');
@@ -165,25 +351,25 @@
       errorEl.classList.remove('hidden');
     }
 
-    function renderTable(tbody, rows, keyField) {
+    function renderTable(tbody, rows, keyField, isPage = false) {
       tbody.innerHTML = rows.length
-        ? rows.map(r => `<tr><td>${r[keyField] || '(direct)'}</td><td>${r.views}</td></tr>`).join('')
-        : '<tr><td colspan="2">No data</td></tr>';
+        ? rows.map(r => `<tr><td${isPage ? ' class="page-path"' : ''}>${r[keyField] || '(direct)'}</td><td>${r.views}</td></tr>`).join('')
+        : '<tr><td colspan="2" style="color: var(--fg-dim); text-align: center;">No data</td></tr>';
     }
 
     let dailyChart = null;
 
     function renderChart(daily) {
       const ctx = document.getElementById('daily-chart').getContext('2d');
-
-      // Sort by date ascending
       const sorted = [...daily].sort((a, b) => a.day.localeCompare(b.day));
-      const labels = sorted.map(d => d.day);
+      const labels = sorted.map(d => d.day.slice(5)); // MM-DD format
       const values = sorted.map(d => d.views);
 
-      if (dailyChart) {
-        dailyChart.destroy();
-      }
+      if (dailyChart) dailyChart.destroy();
+
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+      const textColor = isDark ? '#71717a' : '#64748b';
 
       dailyChart = new Chart(ctx, {
         type: 'line',
@@ -192,19 +378,45 @@
           datasets: [{
             label: 'Views',
             data: values,
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
             fill: true,
-            tension: 0.3,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHoverBackgroundColor: '#3b82f6',
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
           plugins: {
-            legend: { display: false }
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1a1d27' : '#fff',
+              titleColor: textColor,
+              bodyColor: isDark ? '#e4e4e7' : '#0f172a',
+              borderColor: isDark ? '#2a2f3a' : '#e2e8f0',
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 6,
+              displayColors: false,
+            }
           },
           scales: {
-            y: { beginAtZero: true }
+            x: {
+              grid: { display: false },
+              ticks: { color: textColor, font: { size: 11 } },
+              border: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: gridColor },
+              ticks: { color: textColor, font: { size: 11 }, precision: 0 },
+              border: { display: false }
+            }
           }
         }
       });
@@ -220,7 +432,7 @@
         document.getElementById('generated').textContent = new Date(data.generated).toLocaleString();
 
         renderChart(data.daily);
-        renderTable(document.getElementById('pages-table'), data.pages, 'page');
+        renderTable(document.getElementById('pages-table'), data.pages, 'page', true);
         renderTable(document.getElementById('referrers-table'), data.referrers, 'ref');
         renderTable(document.getElementById('browsers-table'), data.browsers, 'browser');
         renderTable(document.getElementById('devices-table'), data.devices, 'device');
@@ -243,7 +455,6 @@
         const data = await loadStats();
         if (!data) return;
 
-        // Create dated filename for history
         const today = new Date().toISOString().split('T')[0];
         const datedFilename = `stats-${today}.json`;
 
@@ -252,12 +463,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             files: {
-              'blog-stats.json': {
-                content: JSON.stringify(data, null, 2)
-              },
-              [datedFilename]: {
-                content: JSON.stringify(data, null, 2)
-              }
+              'blog-stats.json': { content: JSON.stringify(data, null, 2) },
+              [datedFilename]: { content: JSON.stringify(data, null, 2) }
             }
           }),
         });
@@ -286,27 +493,22 @@
       cleanupBtn.textContent = 'Exporting...';
 
       try {
-        // Fetch 90 days of stats for archive
         const res = await fetch(VALTOWN_STATS + '?days=90');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        // Archive to Gist
         await auth.fetch(`https://api.github.com/gists/${GIST_ID}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             files: {
-              'blog-stats.json': {
-                content: JSON.stringify(data, null, 2)
-              }
+              'blog-stats.json': { content: JSON.stringify(data, null, 2) }
             }
           }),
         });
 
         cleanupBtn.textContent = 'Cleaning...';
 
-        // Call cleanup endpoint
         const cleanupRes = await fetch(VALTOWN_CLEANUP, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${secret}` },
@@ -318,7 +520,7 @@
         setTimeout(() => {
           cleanupBtn.textContent = 'Export & Cleanup';
           cleanupBtn.disabled = false;
-          loadStats(); // Refresh stats
+          loadStats();
         }, 2000);
       } catch (e) {
         showError('Failed: ' + e.message);
