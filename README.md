@@ -28,6 +28,10 @@ The [colophon](colophon) lists commit messages and transcripts for every tool.
 
 - [Blog Analytics](analytics) - Privacy-friendly analytics dashboard for blog.ianp.io
 
+## Utilities
+
+- [Calendar](calendar) - Simple month view calendar
+
 ---
 
 *Built with HTML, CSS, and JavaScript. No build step required.*

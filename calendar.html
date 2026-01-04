@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #1a1a1a;
+            --muted: #666;
+            --border: #e0e0e0;
+            --highlight: #0066cc;
+            --highlight-bg: #e6f0ff;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1a1a1a;
+                --fg: #e0e0e0;
+                --muted: #888;
+                --border: #333;
+                --highlight: #6db3f2;
+                --highlight-bg: #1e3a5f;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .calendar {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+        .nav-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .nav-btn:hover {
+            background: var(--border);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .day-header {
+            background: var(--bg);
+            padding: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .day {
+            background: var(--bg);
+            padding: 0.75rem;
+            text-align: center;
+            min-height: 2.5rem;
+        }
+        .day.other-month {
+            color: var(--muted);
+        }
+        .day.today {
+            background: var(--highlight-bg);
+            color: var(--highlight);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar">
+        <div class="header">
+            <button class="nav-btn" id="prev">&larr;</button>
+            <h1 id="title"></h1>
+            <button class="nav-btn" id="next">&rarr;</button>
+        </div>
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <script>
+        const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        let currentDate = new Date();
+        let viewYear = currentDate.getFullYear();
+        let viewMonth = currentDate.getMonth();
+
+        function render() {
+            document.getElementById('title').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            // Day headers
+            DAYS.forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'day-header';
+                el.textContent = d;
+                grid.appendChild(el);
+            });
+
+            // First day of month and total days
+            const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+            const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+            // Previous month days
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const el = document.createElement('div');
+                el.className = 'day other-month';
+                el.textContent = daysInPrevMonth - i;
+                grid.appendChild(el);
+            }
+
+            // Current month days
+            const today = new Date();
+            for (let d = 1; d <= daysInMonth; d++) {
+                const el = document.createElement('div');
+                el.className = 'day';
+                if (d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear()) {
+                    el.className += ' today';
+                }
+                el.textContent = d;
+                grid.appendChild(el);
+            }
+
+            // Next month days
+            const totalCells = firstDay + daysInMonth;
+            const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let d = 1; d <= remaining; d++) {
+                const el = document.createElement('div');
+                el.className = 'day other-month';
+                el.textContent = d;
+                grid.appendChild(el);
+            }
+        }
+
+        document.getElementById('prev').onclick = () => {
+            viewMonth--;
+            if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+            render();
+        };
+
+        document.getElementById('next').onclick = () => {
+            viewMonth++;
+            if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+            render();
+        };
+
+        render();
+    </script>
+</body>
+</html>
