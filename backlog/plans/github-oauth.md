@@ -33,15 +33,9 @@ Provide a shared authentication mechanism so any tool on `tools.ianp.io` can:
 [Tool stores token in localStorage, clears URL]
 ```
 
-## Hosting Options
+## Hosting
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Cloudflare Worker** | Edge-deployed, fast, Simon's reference impl | Another account/service |
-| **Val Town** | Already using for analytics, simple | Single point of dependency |
-| **Netlify Function** | Easy if already using Netlify | Another service |
-
-**Recommendation:** Val Town - keeps everything in one place.
+**Cloudflare Workers** - Edge-deployed, fast, and matches Simon Willison's reference implementation.
 
 ## GitHub OAuth App Setup
 
@@ -49,66 +43,72 @@ Provide a shared authentication mechanism so any tool on `tools.ianp.io` can:
 2. Create new OAuth App:
    - **Application name:** ianp.io Tools
    - **Homepage URL:** https://tools.ianp.io
-   - **Authorization callback URL:** https://{valtown-endpoint}/auth/callback
+   - **Authorization callback URL:** https://{worker-name}.{account}.workers.dev/auth/callback
 3. Note the **Client ID**
-4. Generate a **Client Secret** (store in Val Town secrets)
+4. Generate a **Client Secret** (store in Cloudflare Worker secrets)
 
-## Val Town Implementation
+## Cloudflare Worker Implementation
 
 ### Environment Secrets
 
+Set via `wrangler secret put`:
+
 ```
-GITHUB_CLIENT_ID     = "Iv1.xxxxxxxx"
-GITHUB_CLIENT_SECRET = "xxxxxxxxxxxxxxxx"
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
 ```
 
-### Endpoints
+### Worker Code
 
-**`GET /auth/github`** - Start OAuth flow
 ```js
-export function authGithub(req: Request) {
-  const redirectUri = "https://your-val.web.val.run/auth/callback";
-  const scope = "gist"; // or "gist,read:user" for profile info
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
 
-  const url = new URL("https://github.com/login/oauth/authorize");
-  url.searchParams.set("client_id", Deno.env.get("GITHUB_CLIENT_ID"));
-  url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("scope", scope);
-  url.searchParams.set("state", crypto.randomUUID()); // CSRF protection
+    if (url.pathname === "/auth/github") {
+      // Start OAuth flow
+      const redirectUri = `${url.origin}/auth/callback`;
+      const scope = "gist"; // or "gist,read:user" for profile info
 
-  return Response.redirect(url.toString(), 302);
-}
-```
+      const authUrl = new URL("https://github.com/login/oauth/authorize");
+      authUrl.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
+      authUrl.searchParams.set("redirect_uri", redirectUri);
+      authUrl.searchParams.set("scope", scope);
+      authUrl.searchParams.set("state", crypto.randomUUID()); // CSRF protection
 
-**`GET /auth/callback`** - Exchange code for token
-```js
-export async function authCallback(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
+      return Response.redirect(authUrl.toString(), 302);
+    }
 
-  // Exchange code for token
-  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      client_id: Deno.env.get("GITHUB_CLIENT_ID"),
-      client_secret: Deno.env.get("GITHUB_CLIENT_SECRET"),
-      code,
-    }),
-  });
+    if (url.pathname === "/auth/callback") {
+      // Exchange code for token
+      const code = url.searchParams.get("code");
 
-  const { access_token } = await tokenRes.json();
+      const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: env.GITHUB_CLIENT_ID,
+          client_secret: env.GITHUB_CLIENT_SECRET,
+          code,
+        }),
+      });
 
-  // Redirect back to tools.ianp.io with token in fragment (not query!)
-  // Fragment stays client-side, never sent to server
-  return Response.redirect(
-    `https://tools.ianp.io/auth-complete.html#token=${access_token}`,
-    302
-  );
-}
+      const { access_token } = await tokenRes.json();
+
+      // Redirect back to tools.ianp.io with token in fragment (not query!)
+      // Fragment stays client-side, never sent to server
+      return Response.redirect(
+        `https://tools.ianp.io/auth-complete.html#token=${access_token}`,
+        302
+      );
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
+};
 ```
 
 ### Landing Page: `auth-complete.html`
@@ -152,7 +152,7 @@ function isAuthenticated() {
 // Start auth flow
 function login() {
   localStorage.setItem("auth_return_to", window.location.pathname);
-  window.location.href = "https://your-val.web.val.run/auth/github";
+  window.location.href = "https://{worker-name}.{account}.workers.dev/auth/github";
 }
 
 // Make authenticated request
@@ -185,7 +185,7 @@ Create `auth.js` that any tool can import:
 
 ```js
 // /auth.js
-const AUTH_ENDPOINT = "https://your-val.web.val.run/auth/github";
+const AUTH_ENDPOINT = "https://{worker-name}.{account}.workers.dev/auth/github";
 const TOKEN_KEY = "github_token";
 
 export const auth = {
@@ -231,10 +231,11 @@ export const auth = {
 - [ ] Create OAuth App on GitHub
 - [ ] Note Client ID and Secret
 
-### Phase 2: Val Town Endpoints
-- [ ] Add secrets to Val Town (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET)
-- [ ] Implement `/auth/github` endpoint
-- [ ] Implement `/auth/callback` endpoint
+### Phase 2: Cloudflare Worker
+- [ ] Create new Worker project with `wrangler init`
+- [ ] Add secrets via `wrangler secret put`
+- [ ] Implement worker with `/auth/github` and `/auth/callback` routes
+- [ ] Deploy with `wrangler deploy`
 - [ ] Test flow manually
 
 ### Phase 3: Tools Integration
@@ -252,8 +253,11 @@ export const auth = {
 tools/
 ├── auth-complete.html      # OAuth callback landing page
 ├── auth.js                 # Shared auth module
-└── valtown/
-    └── github-oauth.ts     # Val Town endpoint source (for reference)
+└── cloudflare/
+    └── github-oauth/
+        ├── wrangler.toml   # Worker configuration
+        └── src/
+            └── index.js    # Worker code
 ```
 
 ## Resources
@@ -261,7 +265,7 @@ tools/
 - [Simon Willison's TIL: GitHub OAuth for static sites](https://til.simonwillison.net/cloudflare/workers-github-oauth)
 - [Simon's Worker code](https://github.com/simonw/tools/blob/main/cloudflare-workers/github-auth.js)
 - [GitHub OAuth Documentation](https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing-oauth-apps)
-- [Val Town HTTP Handlers](https://docs.val.town/types/http/)
+- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
 
 ## Future Enhancements
 

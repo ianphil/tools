@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authenticating...</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f5f5f5;
+    }
+    .message {
+      text-align: center;
+      padding: 2rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <div class="message" id="message">Authenticating...</div>
+  <script>
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const token = params.get("token");
+    const messageEl = document.getElementById("message");
+
+    if (token) {
+      localStorage.setItem("github_token", token);
+      const returnTo = localStorage.getItem("auth_return_to") || "/";
+      localStorage.removeItem("auth_return_to");
+      messageEl.textContent = "Success! Redirecting...";
+      window.location.href = returnTo;
+    } else {
+      messageEl.textContent = "Authentication failed.";
+      messageEl.classList.add("error");
+    }
+  </script>
+</body>
+</html>
