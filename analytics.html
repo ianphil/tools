@@ -51,7 +51,14 @@
       border-radius: 0.5rem;
     }
     .hidden { display: none; }
+    .chart-container {
+      background: var(--card-background-color);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <main class="container">
@@ -77,6 +84,11 @@
           <h3>Generated</h3>
           <div class="value" id="generated" style="font-size: 1rem;">-</div>
         </div>
+      </div>
+
+      <h2>Daily Views</h2>
+      <div class="chart-container">
+        <canvas id="daily-chart"></canvas>
       </div>
 
       <h2>Top Pages</h2>
@@ -159,6 +171,45 @@
         : '<tr><td colspan="2">No data</td></tr>';
     }
 
+    let dailyChart = null;
+
+    function renderChart(daily) {
+      const ctx = document.getElementById('daily-chart').getContext('2d');
+
+      // Sort by date ascending
+      const sorted = [...daily].sort((a, b) => a.day.localeCompare(b.day));
+      const labels = sorted.map(d => d.day);
+      const values = sorted.map(d => d.views);
+
+      if (dailyChart) {
+        dailyChart.destroy();
+      }
+
+      dailyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Views',
+            data: values,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.3,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
     async function loadStats() {
       try {
         const res = await fetch(VALTOWN_STATS + '?days=30');
@@ -168,6 +219,7 @@
         document.getElementById('total-views').textContent = data.totals.views.toLocaleString();
         document.getElementById('generated').textContent = new Date(data.generated).toLocaleString();
 
+        renderChart(data.daily);
         renderTable(document.getElementById('pages-table'), data.pages, 'page');
         renderTable(document.getElementById('referrers-table'), data.referrers, 'ref');
         renderTable(document.getElementById('browsers-table'), data.browsers, 'browser');
