@@ -60,6 +60,7 @@
     <div class="auth-section">
       <button id="login-btn">Sign in with GitHub</button>
       <button id="sync-btn" class="outline hidden">Sync to Gist</button>
+      <button id="cleanup-btn" class="secondary outline hidden">Export & Cleanup</button>
       <button id="logout-btn" class="secondary outline hidden">Logout</button>
     </div>
 
@@ -115,11 +116,14 @@
   <script type="module">
     import { auth } from './auth.js';
 
-    const VALTOWN_STATS = 'https://ianphil--412f8d84e91f11f0bb4242dde27851f2.web.val.run/stats';
-    const GIST_ID = 'YOUR_GIST_ID';
+    const VALTOWN_BASE = 'https://ianphil--412f8d84e91f11f0bb4242dde27851f2.web.val.run';
+    const VALTOWN_STATS = VALTOWN_BASE + '/stats';
+    const VALTOWN_CLEANUP = VALTOWN_BASE + '/cleanup';
+    const GIST_ID = 'b83195c4b3365caba7bc1104d4cc2902';
 
     const loginBtn = document.getElementById('login-btn');
     const syncBtn = document.getElementById('sync-btn');
+    const cleanupBtn = document.getElementById('cleanup-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
@@ -130,10 +134,12 @@
       if (auth.isLoggedIn()) {
         loginBtn.classList.add('hidden');
         syncBtn.classList.remove('hidden');
+        cleanupBtn.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
       } else {
         loginBtn.classList.remove('hidden');
         syncBtn.classList.add('hidden');
+        cleanupBtn.classList.add('hidden');
         logoutBtn.classList.add('hidden');
       }
     }
@@ -206,6 +212,59 @@
         showError('Failed to sync: ' + e.message);
         syncBtn.textContent = 'Sync to Gist';
         syncBtn.disabled = false;
+      }
+    };
+
+    cleanupBtn.onclick = async () => {
+      const secret = prompt('Enter cleanup secret (from Val Town env):');
+      if (!secret) return;
+
+      if (!confirm('This will archive 90 days of data to Gist and delete old records. Continue?')) {
+        return;
+      }
+
+      cleanupBtn.disabled = true;
+      cleanupBtn.textContent = 'Exporting...';
+
+      try {
+        // Fetch 90 days of stats for archive
+        const res = await fetch(VALTOWN_STATS + '?days=90');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Archive to Gist
+        await auth.fetch(`https://api.github.com/gists/${GIST_ID}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            files: {
+              'blog-stats.json': {
+                content: JSON.stringify(data, null, 2)
+              }
+            }
+          }),
+        });
+
+        cleanupBtn.textContent = 'Cleaning...';
+
+        // Call cleanup endpoint
+        const cleanupRes = await fetch(VALTOWN_CLEANUP, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${secret}` },
+        });
+
+        if (!cleanupRes.ok) throw new Error(`Cleanup failed: ${cleanupRes.status}`);
+
+        cleanupBtn.textContent = 'Done!';
+        setTimeout(() => {
+          cleanupBtn.textContent = 'Export & Cleanup';
+          cleanupBtn.disabled = false;
+          loadStats(); // Refresh stats
+        }, 2000);
+      } catch (e) {
+        showError('Failed: ' + e.message);
+        cleanupBtn.textContent = 'Export & Cleanup';
+        cleanupBtn.disabled = false;
       }
     };
 
