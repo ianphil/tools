@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Reader - HN Top Blogs 2025</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        body {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .progress-container {
+            margin-bottom: 1.5rem;
+        }
+        .progress-text {
+            font-size: 0.875rem;
+            color: var(--muted-color);
+            margin-bottom: 0.5rem;
+        }
+        progress {
+            width: 100%;
+        }
+        .feed {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--muted-border-color);
+        }
+        .feed:last-child {
+            border-bottom: none;
+        }
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .feed-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .feed-title a {
+            text-decoration: none;
+        }
+        .feed-title a:hover {
+            text-decoration: underline;
+        }
+        .feed-error {
+            color: var(--del-color);
+            font-size: 0.875rem;
+        }
+        .posts {
+            list-style: disc;
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        .posts li {
+            margin-bottom: 0.25rem;
+        }
+        .posts a {
+            text-decoration: none;
+        }
+        .posts a:hover {
+            text-decoration: underline;
+        }
+        .post-date {
+            color: var(--muted-color);
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+        .info {
+            background-color: var(--form-element-disabled-background-color);
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--muted-color);
+        }
+        .info a {
+            color: inherit;
+        }
+        .stats {
+            font-size: 0.875rem;
+            color: var(--muted-color);
+            margin-bottom: 1rem;
+        }
+        #feeds-container:empty::before {
+            content: "Click Refresh to load feeds...";
+            color: var(--muted-color);
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="header">
+            <h1>RSS Reader</h1>
+            <button id="refresh-btn" onclick="loadFeeds()">Refresh</button>
+        </div>
+
+        <p>The 3 latest posts from <a href="https://gist.github.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b" target="_blank">92 top HN blogs of 2025</a></p>
+
+        <div class="progress-container" id="progress-container" hidden>
+            <div class="progress-text" id="progress-text">Loading feeds...</div>
+            <progress id="progress" value="0" max="100"></progress>
+        </div>
+
+        <div class="stats" id="stats" hidden></div>
+
+        <div id="feeds-container"></div>
+
+        <div class="info">
+            <strong>Source:</strong> <a href="https://gist.github.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b" target="_blank">HN Popular Blogs 2025 OPML</a> via <a href="https://x.com/karpathy/status/2018043254986703167" target="_blank">Karpathy's tweet</a> about bringing back RSS.
+        </div>
+    </main>
+
+    <script>
+        const OPML_URL = 'https://gist.githubusercontent.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b/raw/hn-popular-blogs-2025.opml';
+        const CORS_PROXY = 'https://corsproxy.io/?';
+        const BATCH_SIZE = 5;
+        const BATCH_DELAY = 500;
+
+        const feedsContainer = document.getElementById('feeds-container');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress');
+        const progressText = document.getElementById('progress-text');
+        const statsEl = document.getElementById('stats');
+        const refreshBtn = document.getElementById('refresh-btn');
+
+        async function loadFeeds() {
+            feedsContainer.innerHTML = '';
+            progressContainer.hidden = false;
+            statsEl.hidden = true;
+            refreshBtn.disabled = true;
+
+            try {
+                // Fetch OPML
+                progressText.textContent = 'Fetching feed list...';
+                const opmlRes = await fetch(CORS_PROXY + encodeURIComponent(OPML_URL));
+                const opmlText = await opmlRes.text();
+
+                // Parse OPML
+                const parser = new DOMParser();
+                const opml = parser.parseFromString(opmlText, 'text/xml');
+                const outlines = opml.querySelectorAll('outline[type="rss"]');
+
+                const feeds = Array.from(outlines).map(el => ({
+                    title: el.getAttribute('text') || el.getAttribute('title'),
+                    xmlUrl: el.getAttribute('xmlUrl'),
+                    htmlUrl: el.getAttribute('htmlUrl')
+                }));
+
+                progressBar.max = feeds.length;
+
+                let loaded = 0;
+                let failed = 0;
+                const results = [];
+
+                // Process in batches
+                for (let i = 0; i < feeds.length; i += BATCH_SIZE) {
+                    const batch = feeds.slice(i, i + BATCH_SIZE);
+
+                    const batchResults = await Promise.all(
+                        batch.map(feed => fetchFeed(feed))
+                    );
+
+                    batchResults.forEach((result, idx) => {
+                        loaded++;
+                        if (result.error) failed++;
+                        results.push(result);
+                        progressBar.value = loaded;
+                        progressText.textContent = `Loading feeds... ${loaded}/${feeds.length}`;
+                    });
+
+                    // Render as we go
+                    renderFeeds(results);
+
+                    // Delay between batches (be nice to proxy)
+                    if (i + BATCH_SIZE < feeds.length) {
+                        await sleep(BATCH_DELAY);
+                    }
+                }
+
+                progressContainer.hidden = true;
+                statsEl.hidden = false;
+                statsEl.textContent = `Loaded ${loaded - failed} feeds successfully${failed > 0 ? `, ${failed} failed` : ''}`;
+
+            } catch (err) {
+                progressText.textContent = 'Error: ' + err.message;
+            } finally {
+                refreshBtn.disabled = false;
+            }
+        }
+
+        async function fetchFeed(feed) {
+            try {
+                const res = await fetch(CORS_PROXY + encodeURIComponent(feed.xmlUrl), {
+                    signal: AbortSignal.timeout(10000)
+                });
+                const text = await res.text();
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/xml');
+
+                // Handle both RSS and Atom
+                let items = doc.querySelectorAll('item');
+                if (items.length === 0) {
+                    items = doc.querySelectorAll('entry');
+                }
+
+                const posts = Array.from(items).slice(0, 3).map(item => {
+                    // RSS format
+                    let title = item.querySelector('title')?.textContent;
+                    let link = item.querySelector('link')?.textContent;
+                    let date = item.querySelector('pubDate')?.textContent;
+
+                    // Atom format
+                    if (!link || link.trim() === '') {
+                        const linkEl = item.querySelector('link[href]');
+                        link = linkEl?.getAttribute('href');
+                    }
+                    if (!date) {
+                        date = item.querySelector('published')?.textContent ||
+                               item.querySelector('updated')?.textContent;
+                    }
+
+                    return { title, link, date: date ? new Date(date) : null };
+                });
+
+                // Get most recent post date for sorting
+                const mostRecent = posts[0]?.date || new Date(0);
+
+                return { ...feed, posts, mostRecent, error: null };
+            } catch (err) {
+                return { ...feed, posts: [], mostRecent: new Date(0), error: err.message };
+            }
+        }
+
+        function renderFeeds(results) {
+            // Sort by most recent post
+            const sorted = [...results].sort((a, b) => b.mostRecent - a.mostRecent);
+
+            feedsContainer.innerHTML = sorted.map(feed => {
+                if (feed.error) {
+                    return `
+                        <div class="feed">
+                            <div class="feed-header">
+                                <span class="feed-title">
+                                    <a href="${escapeHtml(feed.htmlUrl)}" target="_blank">${escapeHtml(feed.title)}</a>
+                                </span>
+                                <span class="feed-error">- failed to load</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (feed.posts.length === 0) {
+                    return `
+                        <div class="feed">
+                            <div class="feed-header">
+                                <span class="feed-title">
+                                    <a href="${escapeHtml(feed.htmlUrl)}" target="_blank">${escapeHtml(feed.title)}</a>
+                                </span>
+                                <span class="feed-error">- no posts</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="feed">
+                        <div class="feed-header">
+                            <span class="feed-title">
+                                <a href="${escapeHtml(feed.htmlUrl)}" target="_blank">${escapeHtml(feed.title)}</a>
+                            </span>
+                        </div>
+                        <ul class="posts">
+                            ${feed.posts.map(post => `
+                                <li>
+                                    <a href="${escapeHtml(post.link)}" target="_blank">${escapeHtml(post.title)}</a>
+                                    ${post.date ? `<span class="post-date">${formatDate(post.date)}</span>` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatDate(date) {
+            const now = new Date();
+            const diff = now - date;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (hours < 1) return 'just now';
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+            if (days < 30) return `${Math.floor(days / 7)}w ago`;
+            return date.toLocaleDateString();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;');
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Auto-load on page load
+        loadFeeds();
+    </script>
+</body>
+</html>
