@@ -148,6 +148,7 @@
                 // Fetch OPML
                 progressText.textContent = 'Fetching feed list...';
                 const opmlRes = await fetch(CORS_PROXY + encodeURIComponent(OPML_URL));
+                if (!opmlRes.ok) throw new Error(`Failed to fetch OPML: ${opmlRes.status}`);
                 const opmlText = await opmlRes.text();
 
                 // Parse OPML
@@ -155,11 +156,13 @@
                 const opml = parser.parseFromString(opmlText, 'text/xml');
                 const outlines = opml.querySelectorAll('outline[type="rss"]');
 
-                const feeds = Array.from(outlines).map(el => ({
-                    title: el.getAttribute('text') || el.getAttribute('title'),
-                    xmlUrl: el.getAttribute('xmlUrl'),
-                    htmlUrl: el.getAttribute('htmlUrl')
-                }));
+                const feeds = Array.from(outlines)
+                    .filter(el => el.getAttribute('xmlUrl'))
+                    .map(el => ({
+                        title: el.getAttribute('text') || el.getAttribute('title'),
+                        xmlUrl: el.getAttribute('xmlUrl'),
+                        htmlUrl: el.getAttribute('htmlUrl')
+                    }));
 
                 progressBar.max = feeds.length;
 
@@ -197,7 +200,9 @@
                 statsEl.textContent = `Loaded ${loaded - failed} feeds successfully${failed > 0 ? `, ${failed} failed` : ''}`;
 
             } catch (err) {
-                progressText.textContent = 'Error: ' + err.message;
+                progressContainer.hidden = true;
+                statsEl.hidden = false;
+                statsEl.textContent = 'Error: ' + err.message;
             } finally {
                 refreshBtn.disabled = false;
             }
@@ -208,6 +213,7 @@
                 const res = await fetch(CORS_PROXY + encodeURIComponent(feed.xmlUrl), {
                     signal: AbortSignal.timeout(10000)
                 });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const text = await res.text();
 
                 const parser = new DOMParser();
@@ -235,7 +241,9 @@
                                item.querySelector('updated')?.textContent;
                     }
 
-                    return { title, link, date: date ? new Date(date) : null };
+                    const parsedDate = date ? new Date(date) : null;
+                    const validDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null;
+                    return { title, link, date: validDate };
                 });
 
                 // Get most recent post date for sorting
@@ -301,6 +309,10 @@
         function formatDate(date) {
             const now = new Date();
             const diff = now - date;
+
+            // Handle future dates
+            if (diff < 0) return date.toLocaleDateString();
+
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
@@ -316,7 +328,8 @@
             return str.replace(/&/g, '&amp;')
                       .replace(/</g, '&lt;')
                       .replace(/>/g, '&gt;')
-                      .replace(/"/g, '&quot;');
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#39;');
         }
 
         function sleep(ms) {
