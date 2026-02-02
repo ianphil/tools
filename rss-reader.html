@@ -127,9 +127,10 @@
 
     <script>
         const OPML_URL = 'https://gist.githubusercontent.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b/raw/hn-popular-blogs-2025.opml';
-        const CORS_PROXY = 'https://corsproxy.io/?';
+        // CORS proxy - own worker at cloudflare/cors-proxy/
+        const CORS_PROXY = 'https://cors-proxy.ian-philpot.workers.dev/?url=';
         const BATCH_SIZE = 5;
-        const BATCH_DELAY = 500;
+        const BATCH_DELAY = 300;
 
         const feedsContainer = document.getElementById('feeds-container');
         const progressContainer = document.getElementById('progress-container');
@@ -145,9 +146,9 @@
             refreshBtn.disabled = true;
 
             try {
-                // Fetch OPML
+                // Fetch OPML (GitHub Gist supports CORS directly)
                 progressText.textContent = 'Fetching feed list...';
-                const opmlRes = await fetch(CORS_PROXY + encodeURIComponent(OPML_URL));
+                const opmlRes = await fetch(OPML_URL);
                 if (!opmlRes.ok) throw new Error(`Failed to fetch OPML: ${opmlRes.status}`);
                 const opmlText = await opmlRes.text();
 
