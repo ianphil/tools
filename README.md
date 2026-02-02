@@ -28,6 +28,10 @@ The [colophon](colophon) lists commit messages and transcripts for every tool.
 
 - [Blog Analytics](analytics) - Privacy-friendly analytics dashboard for blog.ianp.io
 
+## RSS
+
+- [RSS Reader](rss-reader) - Latest posts from HN's top 92 blogs of 2025
+
 ## Utilities
 
 - [Calendar](calendar) - Simple month view calendar
