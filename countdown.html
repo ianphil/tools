@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-border: #334155;
+            --fg: #f8fafc;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-strong: #f97316;
+            --done: #22c55e;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f8fafc;
+                --panel: #ffffff;
+                --panel-border: #cbd5e1;
+                --fg: #0f172a;
+                --muted: #475569;
+                --accent: #0284c7;
+                --accent-strong: #ea580c;
+                --done: #15803d;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 34rem),
+                radial-gradient(circle at bottom right, rgba(249, 115, 22, 0.16), transparent 32rem),
+                var(--bg);
+            color: var(--fg);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.5;
+        }
+
+        main {
+            width: min(980px, 100%);
+            padding: clamp(1.5rem, 4vw, 3rem);
+            background: color-mix(in srgb, var(--panel) 92%, transparent);
+            border: 1px solid var(--panel-border);
+            border-radius: 28px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26);
+            text-align: center;
+        }
+
+        body > footer {
+            width: min(980px, 100%);
+        }
+
+        .eyebrow {
+            margin: 0 0 0.75rem;
+            color: var(--accent);
+            font-size: 0.84rem;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.25rem, 7vw, 5.5rem);
+            line-height: 1;
+            letter-spacing: -0.06em;
+        }
+
+        .target {
+            margin: 1rem auto 2.25rem;
+            color: var(--muted);
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: clamp(0.75rem, 2vw, 1.25rem);
+        }
+
+        .unit {
+            padding: clamp(1rem, 3vw, 1.5rem);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            background: rgba(15, 23, 42, 0.18);
+        }
+
+        .value {
+            display: block;
+            color: var(--accent-strong);
+            font-variant-numeric: tabular-nums;
+            font-size: clamp(2.5rem, 9vw, 6rem);
+            font-weight: 850;
+            line-height: 0.95;
+            letter-spacing: -0.07em;
+        }
+
+        .label {
+            display: block;
+            margin-top: 0.6rem;
+            color: var(--muted);
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            font-weight: 750;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .status {
+            min-height: 1.6em;
+            margin: 2rem 0 0;
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .complete .value,
+        .complete h1 {
+            color: var(--done);
+        }
+
+        @media (max-width: 720px) {
+            body {
+                align-items: flex-start;
+            }
+
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 420px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main id="countdown">
+        <p class="eyebrow">Countdown to Provision</p>
+        <h1>May 15, 2026</h1>
+        <p class="target">Target: Friday, May 15, 2026 at 5:00 PM Eastern</p>
+
+        <div class="grid" aria-live="polite">
+            <div class="unit">
+                <span class="value" id="days">0</span>
+                <span class="label">Days</span>
+            </div>
+            <div class="unit">
+                <span class="value" id="hours">00</span>
+                <span class="label">Hours</span>
+            </div>
+            <div class="unit">
+                <span class="value" id="minutes">00</span>
+                <span class="label">Minutes</span>
+            </div>
+            <div class="unit">
+                <span class="value" id="seconds">00</span>
+                <span class="label">Seconds</span>
+            </div>
+        </div>
+
+        <p class="status" id="status"></p>
+    </main>
+
+    <script>
+        const target = new Date('2026-05-15T17:00:00-04:00');
+        const countdown = document.getElementById('countdown');
+        const status = document.getElementById('status');
+        const fields = {
+            days: document.getElementById('days'),
+            hours: document.getElementById('hours'),
+            minutes: document.getElementById('minutes'),
+            seconds: document.getElementById('seconds')
+        };
+
+        function twoDigits(value) {
+            return String(value).padStart(2, '0');
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const remainingMs = target.getTime() - now.getTime();
+
+            if (remainingMs <= 0) {
+                countdown.classList.add('complete');
+                fields.days.textContent = '0';
+                fields.hours.textContent = '00';
+                fields.minutes.textContent = '00';
+                fields.seconds.textContent = '00';
+                status.textContent = 'Provision reached.';
+                return;
+            }
+
+            const totalSeconds = Math.floor(remainingMs / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            fields.days.textContent = days.toLocaleString();
+            fields.hours.textContent = twoDigits(hours);
+            fields.minutes.textContent = twoDigits(minutes);
+            fields.seconds.textContent = twoDigits(seconds);
+            status.textContent = `Counting down from ${now.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' })}`;
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    </script>
+<script src="footer.js?"></script>
+</body>
+</html>
