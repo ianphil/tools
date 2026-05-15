@@ -37,6 +37,12 @@ The [colophon](colophon) lists commit messages and transcripts for every tool.
 - [Calendar](calendar) - Simple month view calendar
 - [Countdown](countdown) - Countdown to Provision on May 15, 2026 at 5:00 PM Eastern
 
+## Prompts
+
+Reusable prompts for LLMs — copy/paste into a model.
+
+- [Reverse-Engineer Repo into Capability Spec](prompts/reverse-engineer-repo) - Turn any GitHub repo into a structured capability spec
+
 ---
 
 *Built with HTML, CSS, and JavaScript. No build step required.*

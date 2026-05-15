@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reverse-Engineer Repo into Capability Spec — Reusable Prompt</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5c5c5c;
+    --accent: #3b5b8a;
+    --rule: #e5e5e5;
+    --code-bg: #f5f5f5;
+  }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+  }
+  main {
+    max-width: 760px;
+    margin: 3rem auto;
+    padding: 0 1.5rem;
+  }
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 2.25rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.25rem;
+  }
+  h3 {
+    font-size: 1.0rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
+  p, li {
+    color: var(--fg);
+  }
+  .subtitle {
+    color: var(--muted);
+    margin-top: 0;
+    margin-bottom: 2rem;
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 1rem 1.1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  ul, ol {
+    padding-left: 1.4rem;
+  }
+  li {
+    margin-bottom: 0.25rem;
+  }
+  .note {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Reverse-Engineer a Repo into a Capability Spec</h1>
+  <p class="subtitle">Reusable prompt. Copy the block below into a model and point it at any GitHub repository.</p>
+
+  <h2>How to use</h2>
+  <ol>
+    <li>Clone or open the target repository so the model has filesystem access.</li>
+    <li>Paste the prompt below into the model.</li>
+    <li>Replace <code>&lt;REPO_PATH&gt;</code> with the absolute path to the repo (or leave it and supply via context).</li>
+    <li>The model will produce two HTML files in <code>./.ai-docs/</code> in the current working directory.</li>
+  </ol>
+
+  <h2>Output contract</h2>
+  <ul>
+    <li><code>./.ai-docs/&lt;repo-name&gt;-analysis.html</code> — working document with audit trail.</li>
+    <li><code>./.ai-docs/&lt;repo-name&gt;-spec.html</code> — formal capability spec.</li>
+    <li>Both files are single, self-contained HTML documents with inline minimal light-theme CSS, no external assets, no JavaScript.</li>
+  </ul>
+
+  <h2>The prompt</h2>
+  <pre>You are a senior product manager performing a reverse-engineering pass on an existing
+codebase. Your job is to recover the product specification that would have been written
+*before* the code existed.
+
+You will produce TWO HTML artifacts, both written to `./.ai-docs/` in the current working
+directory (create the directory if it does not exist):
+
+  1. `&lt;repo-name&gt;-analysis.html` — the working document (audit trail)
+  2. `&lt;repo-name&gt;-spec.html`     — the formal capability spec (final deliverable)
+
+Repository to analyze: &lt;REPO_PATH&gt;
+
+================================================================================
+GROUND RULES
+================================================================================
+
+- Describe CAPABILITIES, not implementation. A capability is a discrete unit of value
+  the product delivers: what the system can do and why, never how it does it.
+- Forbidden in BOTH documents: framework names, library names, file paths, function names,
+  class names, language names, architectural patterns, data structures, algorithms.
+  (Exception: the working document may cite file paths *only* as evidence in its audit
+  trail sections. The final spec must contain none of these.)
+- Phrase capabilities as outcomes ("Users can recover their account without contacting
+  support"), not as features or implementations ("Password reset endpoint").
+- If docs and code disagree, code is the source of truth. Note the divergence in the
+  working document; resolve it silently in the spec.
+
+================================================================================
+PROCESS
+================================================================================
+
+PHASE 1 — Documentation pass (low-hanging fruit)
+  Read and extract stated intent from:
+    - README, README.* in root and subdirectories
+    - /docs, /doc, /documentation directories
+    - SPEC.md, DESIGN.md, ARCHITECTURE.md, ROADMAP.md, VISION.md, RFC*.md
+    - CHANGELOG.md, HISTORY.md
+    - CONTRIBUTING.md, issue/PR templates
+    - Wiki content if available
+    - Top-level comments in entry-point files
+  Produce a draft capability list. This is a hypothesis, not the answer.
+
+PHASE 2 — Validation against code
+  For each documented capability, confirm it exists by locating its entry point
+  (CLI command, route, exported API, UI handler, scheduled job, event subscriber).
+  Flag each as:
+    - VERIFIED          — docs and code agree
+    - DIVERGENT         — code behavior differs meaningfully from docs
+    - MISSING           — documented but not implemented (or behind disabled flag)
+    - PARTIAL           — implemented but incomplete or gated
+
+PHASE 3 — Discovery of undocumented capabilities
+  Mine the code for capabilities the docs do not mention. Sources of signal:
+    - Routes, commands, exported functions, UI entry points with no doc coverage
+    - Test names (often phrased as behaviors)
+    - Configuration flags that toggle real functionality
+    - Error paths that imply intentional handling of named scenarios
+    - Integrations: webhooks, external APIs, event emitters, scheduled tasks
+    - Permission checks, rate limits, validation rules
+  Tag each as DISCOVERED.
+
+================================================================================
+ARTIFACT 1 — WORKING DOCUMENT (`&lt;repo-name&gt;-analysis.html`)
+================================================================================
+
+Audience: the person doing the reverse-engineering. Honest, annotated, shows seams.
+
+Structure:
+  1. Overview — repo identity, primary purpose as inferred
+  2. Sources consulted — list of doc files read in Phase 1
+  3. Capabilities — documented and VERIFIED
+  4. Capabilities — DIVERGENT (with explanation of the gap)
+  5. Capabilities — MISSING or PARTIAL
+  6. Capabilities — DISCOVERED from code
+  7. Constraints observed (auth, validation, limits, platform)
+  8. Integrations observed (described by role, e.g. "transactional email provider")
+  9. Open questions / ambiguities the reviewer should resolve
+
+Each capability entry includes: name, description, evidence (brief — e.g. "exposed as
+a top-level CLI command", "covered by integration tests describing X behavior"). File
+paths may appear here as evidence, but never as the subject of the description.
+
+================================================================================
+ARTIFACT 2 — FORMAL SPEC (`&lt;repo-name&gt;-spec.html`)
+================================================================================
+
+Audience: a stakeholder reading the spec as if it were authored before implementation.
+Clean, authoritative, single voice. No audit-trail framing. No "discovered" tags. No
+file references. No mention of how anything is built.
+
+Structure:
+  1. Overview — one paragraph: what the product is, who it is for, the problem it solves
+  2. Users / Actors — roles that interact with the system
+  3. Capabilities — grouped by functional area. For each:
+       - Name (outcome-oriented)
+       - Description
+       - Inputs required to invoke
+       - Observable outcomes
+       - Acceptance criteria (testable conditions)
+  4. Constraints — non-negotiables the system enforces
+  5. Integrations — external systems by role, not by name
+  6. Out of scope — things deliberately not done (inferred from absence + clear boundaries)
+  7. Success indicators — metrics or signals the product appears designed to optimize for
+
+================================================================================
+HTML / STYLE REQUIREMENTS (both files)
+================================================================================
+
+- Single self-contained HTML file, inline &lt;style&gt; block, no external CSS, no JS,
+  no images, no web fonts.
+- Light theme. White or near-white background. Near-black body text.
+- System sans-serif font stack only.
+- Max content width ~760px, generous line-height (~1.6).
+- Subtle heading hierarchy (size and weight, not color).
+- One restrained accent color for links.
+- No sidebars, navs, banners, or decoration. Minimal chrome.
+- Use semantic HTML: &lt;h1&gt;–&lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;dl&gt; for capabilities
+  if helpful, &lt;section&gt; for top-level groupings.
+- Must render correctly when opened directly in a browser with no server.
+
+================================================================================
+DELIVERABLE
+================================================================================
+
+After writing both files, print to the console:
+  - The absolute paths of both files
+  - A one-paragraph summary of the product as you now understand it
+  - A count of capabilities in each category (verified / divergent / missing / discovered)
+
+Do not begin until you have read enough of the repository to make confident claims.
+Do not invent capabilities. If evidence is thin, mark it as an open question in the
+working document and omit it from the spec.</pre>
+
+  <h2>Notes</h2>
+  <ul>
+    <li class="note">The working document is the receipts; the spec is the answer. Keep them strictly separate in tone.</li>
+    <li class="note">If you run this against multiple repos, the <code>.ai-docs/</code> directory accumulates a portable library of capability specs over time.</li>
+  </ul>
+</main>
+</body>
+</html>

@@ -31,11 +31,19 @@
     // Fetch last updated date
     async function getLastUpdated() {
         try {
-            const response = await fetch('dates.json');
+            // Use root-relative URL so this works for tools nested in
+            // subdirectories (e.g. /prompts/foo).
+            const response = await fetch('/dates.json');
             if (!response.ok) return null;
             const dates = await response.json();
             const currentPage = getCurrentPage();
-            return dates[currentPage] || null;
+            // dates.json keys are relative to site root (e.g.
+            // "prompts/reverse-engineer-repo.html"). Try the full relative
+            // path first, then fall back to the bare filename for
+            // root-level tools.
+            const path = window.location.pathname.replace(/^\/+/, '');
+            const withHtml = path.endsWith('.html') ? path : path + '.html';
+            return dates[path] || dates[withHtml] || dates[currentPage] || null;
         } catch {
             return null;
         }
@@ -58,9 +66,9 @@
         `;
 
         const links = [
-            { href: './', text: 'Home' },
-            { href: 'colophon', text: 'About' },
-            { href: 'by-month', text: 'Archive' }
+            { href: '/', text: 'Home' },
+            { href: '/colophon', text: 'About' },
+            { href: '/by-month', text: 'Archive' }
         ];
 
         let html = '<div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">';

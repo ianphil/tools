@@ -46,6 +46,7 @@ This repo follows the "HTML Tools" pattern popularized by Simon Willison.
 ```
 tools/
 ├── *.html              # Individual tools (one file each)
+├── prompts/            # Reusable LLM prompts (one HTML file each)
 ├── auth.js             # Shared OAuth module (exception: reusable across tools)
 ├── auth-complete.html  # OAuth callback handler
 ├── CLAUDE.md           # This file

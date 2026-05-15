@@ -90,7 +90,11 @@ def extract_description(docs_path: Path) -> str:
 
 def gather_links():
     """Main function to gather all metadata."""
+    # Scan root-level tools plus tools nested in category subdirectories
+    # (e.g. prompts/). Order is preserved so root tools sort before nested ones
+    # when commit dates tie.
     html_files = sorted(Path(".").glob("*.html"))
+    html_files += sorted(Path("prompts").glob("*.html")) if Path("prompts").is_dir() else []
 
     gathered_links = {}
     tools = []
@@ -99,7 +103,11 @@ def gather_links():
         if html_path.name in EXCLUDED_FILES:
             continue
 
-        slug = html_path.stem
+        # Use posix-style relative path (minus .html) as the slug so
+        # nested tools remain unique and produce clean URLs like
+        # "prompts/reverse-engineer-repo".
+        rel_posix = html_path.as_posix()
+        slug = rel_posix[:-len(".html")]
         commits = get_file_commit_details(str(html_path))
 
         if not commits:
@@ -107,7 +115,7 @@ def gather_links():
 
         # gathered_links.json format
         gathered_links[slug] = {
-            "file": html_path.name,
+            "file": rel_posix,
             "commits": commits,
             "all_urls": list(set(url for c in commits for url in c.get("urls", [])))
         }

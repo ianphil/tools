@@ -33,7 +33,9 @@ if [ -f footer.js ]; then
     FOOTER_HASH=$(git log -1 --format="%H" -- footer.js 2>/dev/null || echo "latest")
     FOOTER_SHORT_HASH=$(echo "$FOOTER_HASH" | cut -c1-8)
 
-    for file in *.html; do
+    for file in *.html prompts/*.html; do
+        # Skip glob when no matches
+        [ -e "$file" ] || continue
         # Skip generated pages
         if [ "$file" = "index.html" ] || [ "$file" = "colophon.html" ] || [ "$file" = "by-month.html" ]; then
             continue
@@ -41,8 +43,10 @@ if [ -f footer.js ]; then
 
         if [ -f "$file" ]; then
             if ! grep -q 'src="footer.js' "$file"; then
-                # Inject footer.js before closing </body>
-                sed -i'' -e "s|</body>|<script src=\"footer.js?${FOOTER_SHORT_HASH}\"></script>\n</body>|" "$file"
+                # Inject footer.js before closing </body>.
+                # Use a root-relative URL so subdirectory tools (e.g.
+                # prompts/foo.html) still load the script correctly.
+                sed -i'' -e "s|</body>|<script src=\"/footer.js?${FOOTER_SHORT_HASH}\"></script>\n</body>|" "$file"
                 echo "  Injected footer into $file"
             fi
         fi
