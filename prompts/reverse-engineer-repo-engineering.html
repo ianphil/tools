@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reverse-Engineer Repo into Engineering Guide — Reusable Prompt</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5c5c5c;
+    --accent: #3b5b8a;
+    --rule: #e5e5e5;
+    --code-bg: #f5f5f5;
+  }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+  }
+  main {
+    max-width: 760px;
+    margin: 3rem auto;
+    padding: 0 1.5rem;
+  }
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 2.25rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.25rem;
+  }
+  h3 {
+    font-size: 1.0rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
+  p, li {
+    color: var(--fg);
+  }
+  .subtitle {
+    color: var(--muted);
+    margin-top: 0;
+    margin-bottom: 2rem;
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 1rem 1.1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  ul, ol {
+    padding-left: 1.4rem;
+  }
+  li {
+    margin-bottom: 0.25rem;
+  }
+  .note {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Reverse-Engineer a Repo into an Engineering Guide</h1>
+  <p class="subtitle">Reusable prompt. Copy the block below into a model and point it at any GitHub repository.</p>
+
+  <h2>How to use</h2>
+  <ol>
+    <li>Clone or open the target repository so the model has filesystem access.</li>
+    <li>Paste the prompt below into the model.</li>
+    <li>Replace <code>&lt;REPO_PATH&gt;</code> with the absolute path to the repo (or leave it and supply via context).</li>
+    <li>The model will produce two HTML files in <code>./.ai-docs/</code> in the current working directory.</li>
+  </ol>
+
+  <h2>Output contract</h2>
+  <ul>
+    <li><code>./.ai-docs/&lt;repo-name&gt;-code-analysis.html</code> — working document with audit trail.</li>
+    <li><code>./.ai-docs/&lt;repo-name&gt;-engineering-guide.html</code> — polished engineering guide.</li>
+    <li>Both files are single, self-contained HTML documents with inline minimal light-theme CSS, no external assets, no JavaScript.</li>
+  </ul>
+
+  <h2>The prompt</h2>
+  <pre>You are a senior/staff software engineer performing a reverse-engineering pass on an existing
+codebase. Your job is to recover the engineering understanding that would let a new engineer
+confidently work in the system: how the code is organized, how the major flows work, what
+patterns are used, where responsibilities live, and what risks or ambiguities remain.
+
+You will produce TWO HTML artifacts, both written to `./.ai-docs/` in the current working
+directory (create the directory if it does not exist):
+
+  1. `&lt;repo-name&gt;-code-analysis.html`       — the working document / audit trail
+  2. `&lt;repo-name&gt;-engineering-guide.html`   — the polished engineering guide
+
+Repository to analyze: &lt;REPO_PATH&gt;
+
+================================================================================
+GROUND RULES
+================================================================================
+
+- Describe HOW THE CODE WORKS, not just what the product does.
+- Use implementation evidence directly: framework names, library names, file paths,
+  function names, class names, types, architectural patterns, data structures, algorithms,
+  commands, configuration files, and tests are all allowed and encouraged when useful.
+- Distinguish observed facts from inferred intent. If something is inferred, label it clearly.
+- If docs and code disagree, code is the source of truth. Note the divergence in the working
+  document and explain the code behavior in the final guide.
+- Do not invent architecture, flows, conventions, or guarantees. If evidence is thin, mark it
+  as an open question.
+- Prefer concrete references over vague summaries. Cite the files, symbols, tests, or commands
+  that support each important claim.
+- Focus on helping an engineer modify, debug, extend, or review the system safely.
+- Do not include secrets, credentials, tokens, or sensitive local environment details.
+
+================================================================================
+PROCESS
+================================================================================
+
+PHASE 1 — Documentation pass
+  Read and extract stated intent, architecture, setup, and operating guidance from:
+    - README, README.* in root and subdirectories
+    - /docs, /doc, /documentation directories
+    - SPEC.md, DESIGN.md, ARCHITECTURE.md, ROADMAP.md, VISION.md, RFC*.md
+    - CHANGELOG.md, HISTORY.md
+    - CONTRIBUTING.md, AGENTS.md, CLAUDE.md, COPILOT*.md
+    - issue/PR templates
+    - Wiki content if available
+    - Top-level comments in entry-point files
+  Produce a draft understanding of the system. This is a hypothesis, not the answer.
+
+PHASE 2 — Repository map
+  Identify the high-level structure of the repository:
+    - Applications, packages, services, libraries, tools, scripts, and generated artifacts
+    - Main entry points and runtime processes
+    - Build, test, lint, type-check, packaging, deployment, or release surfaces
+    - Configuration files that shape runtime or developer behavior
+    - Important directories that should not be manually edited
+
+PHASE 3 — Architecture discovery
+  Determine the system architecture from code:
+    - Major subsystems and their responsibilities
+    - Dependency direction and ownership boundaries
+    - Composition roots and dependency injection patterns
+    - External interfaces: CLI commands, HTTP routes, IPC channels, exported APIs,
+      UI entry points, scheduled jobs, event subscribers, background workers
+    - Persistence, cache, queue, filesystem, network, and credential boundaries
+    - Security and trust boundaries
+
+PHASE 4 — Core flow tracing
+  Trace the most important end-to-end flows through the code. For each flow, identify:
+    - How the flow is entered
+    - The primary modules/classes/functions involved
+    - The data or state passed through the flow
+    - Error handling and cancellation behavior
+    - Observable outputs or side effects
+    - Tests that verify the behavior, if present
+
+  Choose flows based on actual system importance, such as:
+    - Application startup
+    - Authentication/session lifecycle
+    - Primary user action or request path
+    - Background job or scheduler execution
+    - Data persistence/update path
+    - External integration call path
+    - UI-to-backend communication path
+    - Shutdown/cleanup path
+
+PHASE 5 — Pattern and convention extraction
+  Identify recurring implementation patterns:
+    - Naming conventions
+    - File organization conventions
+    - Service/module/class structure
+    - Error handling patterns
+    - Logging/observability patterns
+    - Validation and parsing patterns
+    - Test style and test fixture patterns
+    - State management patterns
+    - API or event payload conventions
+    - How new functionality is typically added
+
+PHASE 6 — Quality, safety, and operability review
+  Identify:
+    - Existing test coverage by area
+    - Critical paths with weak or missing tests
+    - Lint/type/build guarantees
+    - Known TODOs, FIXME comments, feature flags, deprecated paths, or migration seams
+    - Error-prone areas, implicit contracts, or surprising coupling
+    - Security-sensitive code paths
+    - Performance-sensitive or concurrency-sensitive code paths
+
+PHASE 7 — Synthesis
+  Produce:
+    - A working analysis document with evidence, uncertainty, and audit trail
+    - A polished engineering guide suitable for onboarding or future maintenance
+
+================================================================================
+ARTIFACT 1 — WORKING DOCUMENT (`&lt;repo-name&gt;-code-analysis.html`)
+================================================================================
+
+Audience: the engineer doing the reverse-engineering. Honest, annotated, shows seams,
+uncertainty, and supporting evidence.
+
+Structure:
+  1. Overview — repo identity, primary purpose, main technologies, and inferred runtime model
+  2. Sources consulted — docs, config files, entry points, tests, and other evidence reviewed
+  3. Repository map — major directories and what they contain
+  4. Entry points — application, API, CLI, UI, job, event, or package entry points
+  5. Architecture notes — subsystems, boundaries, dependencies, and composition patterns
+  6. Core flows traced — step-by-step technical traces with evidence
+  7. Implementation patterns — recurring conventions and examples
+  8. Data and state — important types, schemas, persisted state, caches, queues, or files
+  9. Error handling and observability — how failures are surfaced, logged, retried, or ignored
+  10. Testing and verification — test layout, commands, coverage signals, and gaps
+  11. Security and trust boundaries — credentials, sandboxing, permissions, validation, unsafe edges
+  12. Risks / sharp edges — surprising coupling, fragile assumptions, concurrency concerns, migrations
+  13. Divergences from documentation — where docs and code disagree
+  14. Open questions / ambiguities — what a maintainer should clarify next
+
+Each important claim should include evidence such as:
+  - File path and symbol name
+  - Test name
+  - Command name
+  - Configuration key
+  - Runtime entry point
+  - Observed dependency relationship
+
+================================================================================
+ARTIFACT 2 — ENGINEERING GUIDE (`&lt;repo-name&gt;-engineering-guide.html`)
+================================================================================
+
+Audience: an engineer joining the project or preparing to make changes. Clean,
+authoritative, practical, and implementation-focused. It should read like a technical
+onboarding guide, not an audit log.
+
+Structure:
+  1. Overview — what the system is, what it does, and how it runs
+  2. Mental model — the simplest accurate model of the system's architecture
+  3. Repository layout — important directories and files, with responsibilities
+  4. Runtime architecture — processes, entry points, service boundaries, and dependency flow
+  5. Major subsystems — each subsystem's responsibility, key files/classes/functions, and collaborators
+  6. Core workflows — concise traces of the most important flows through the code
+  7. Data model and state — important types, schemas, persistence, caches, queues, and filesystem usage
+  8. External interfaces — APIs, IPC, CLI, events, jobs, integrations, or exported package surfaces
+  9. Cross-cutting patterns — error handling, validation, logging, observability, configuration, security
+  10. Testing strategy — how tests are organized, what commands to run, and what areas are covered
+  11. How to make common changes — practical guidance for adding a new feature, route, command,
+      UI surface, service, job, integration, or test, depending on what exists in this repo
+  12. Operational concerns — build, packaging, deployment, release, migrations, feature flags,
+      local development, or troubleshooting
+  13. Known risks and open questions — only items that matter for future engineering work
+
+For each major subsystem include:
+  - Responsibility
+  - Key implementation files/symbols
+  - Public or external interface
+  - Important collaborators
+  - State owned or modified
+  - Tests or verification points
+  - Common extension pattern
+
+For each core workflow include:
+  - Trigger
+  - Step-by-step path through code
+  - Important data passed along the way
+  - Side effects
+  - Failure behavior
+  - Tests or verification points
+
+================================================================================
+HTML / STYLE REQUIREMENTS (both files)
+================================================================================
+
+- Single self-contained HTML file, inline &lt;style&gt; block, no external CSS, no JS,
+  no images, no web fonts.
+- Light theme. White or near-white background. Near-black body text.
+- System sans-serif font stack only.
+- Max content width ~860px, generous line-height (~1.6).
+- Subtle heading hierarchy using size and weight.
+- One restrained accent color for links and code references.
+- No sidebars, navs, banners, or decoration. Minimal chrome.
+- Use semantic HTML: &lt;h1&gt;–&lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;dl&gt;, &lt;table&gt;, &lt;code&gt;,
+  &lt;pre&gt;, and &lt;section&gt; where appropriate.
+- Code references should use &lt;code&gt;.
+- Must render correctly when opened directly in a browser with no server.
+
+================================================================================
+DELIVERABLE
+================================================================================
+
+After writing both files, print to the console:
+  - The absolute paths of both files
+  - A one-paragraph summary of the system as you now understand it
+  - A count of:
+      - major subsystems mapped
+      - entry points identified
+      - core flows traced
+      - recurring implementation patterns identified
+      - risks / sharp edges found
+      - open questions remaining
+
+Do not begin writing the final guide until you have read enough of the repository to make
+confident technical claims.
+Do not invent architecture, conventions, or flows.
+If evidence is thin, mark it as an open question in the working document and either omit it
+from the guide or clearly qualify it.</pre>
+
+  <h2>Notes</h2>
+  <ul>
+    <li class="note">The working document is the receipts; the engineering guide is the onboarding map. Keep them separate in tone.</li>
+    <li class="note">If you run this against multiple repos, the <code>.ai-docs/</code> directory accumulates a portable library of engineering guides over time.</li>
+  </ul>
+</main>
+</body>
+</html>
